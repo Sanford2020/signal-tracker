@@ -70,6 +70,8 @@ Release validation:
 powershell -ExecutionPolicy Bypass -File scripts\validate-release.ps1
 ```
 
+GitHub Actions also runs backend `pytest`, frontend `npm run type-check`, and frontend `npm run build` on `main` pushes and pull requests.
+
 Hosted staging smoke test:
 
 ```powershell
