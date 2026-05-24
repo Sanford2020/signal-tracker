@@ -130,6 +130,43 @@ def test_intel_file_list_returns_created_file(client: TestClient, db_session: Se
     assert data["items"][0]["title"] == raw_item.title
 
 
+def test_intel_file_list_supports_search_status_sort_and_pagination(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    first_raw = _create_raw_item(db_session, title="Alpha robotics hiring", content="Hiring signal")
+    second_raw = _create_raw_item(db_session, title="Beta model launch", content="Product signal")
+    _analyze(client, first_raw.id)
+    _analyze(client, second_raw.id)
+    first = client.post("/api/v1/intel-files", json={"raw_item_id": str(first_raw.id)})
+    second = client.post("/api/v1/intel-files", json={"raw_item_id": str(second_raw.id)})
+    assert first.status_code == 200
+    assert second.status_code == 200
+
+    first_file = db_session.get(IntelFile, UUID(first.json()["data"]["intel_file"]["id"]))
+    second_file = db_session.get(IntelFile, UUID(second.json()["data"]["intel_file"]["id"]))
+    assert first_file is not None
+    assert second_file is not None
+    first_file.status = LifecycleStatus.WATCHING
+    first_file.opportunity_score = 5.0
+    second_file.status = LifecycleStatus.WATCHING
+    second_file.opportunity_score = 9.0
+    db_session.commit()
+
+    searched = client.get("/api/v1/intel-files?q=robotics")
+    assert searched.status_code == 200
+    assert searched.json()["data"]["total"] == 1
+    assert searched.json()["data"]["items"][0]["title"] == "Alpha robotics hiring"
+
+    sorted_response = client.get(
+        "/api/v1/intel-files?status=watching&sort=opportunity_score&order=desc&page=1&page_size=1"
+    )
+    assert sorted_response.status_code == 200
+    sorted_data = sorted_response.json()["data"]
+    assert sorted_data["total"] == 2
+    assert sorted_data["items"][0]["title"] == "Beta model launch"
+
+
 def test_intel_file_detail_returns_expected_fields(client: TestClient, db_session: Session) -> None:
     raw_item = _create_raw_item(
         db_session,

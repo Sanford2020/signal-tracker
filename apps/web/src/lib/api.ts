@@ -110,11 +110,34 @@ export async function createIntelFile(body: IntelFileCreateRequest) {
   });
 }
 
-export async function fetchIntelFiles(page = 1, pageSize = 20) {
+export type IntelFileListOptions = {
+  page?: number;
+  pageSize?: number;
+  status?: string;
+  q?: string;
+  sort?: string;
+  order?: "asc" | "desc";
+};
+
+export async function fetchIntelFiles(pageOrOptions: number | IntelFileListOptions = 1, pageSize = 20) {
+  const options: IntelFileListOptions =
+    typeof pageOrOptions === "number" ? { page: pageOrOptions, pageSize } : pageOrOptions;
   const params = new URLSearchParams({
-    page: String(page),
-    page_size: String(pageSize),
+    page: String(options.page ?? 1),
+    page_size: String(options.pageSize ?? 20),
   });
+  if (options.status) {
+    params.set("status", options.status);
+  }
+  if (options.q) {
+    params.set("q", options.q);
+  }
+  if (options.sort) {
+    params.set("sort", options.sort);
+  }
+  if (options.order) {
+    params.set("order", options.order);
+  }
   return request<IntelFileListData>(`/api/v1/intel-files?${params.toString()}`);
 }
 

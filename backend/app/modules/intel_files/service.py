@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import asc, desc, func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import Evidence, IntelEvent, IntelFile, RawItem, SignalAnalysis
@@ -224,23 +224,50 @@ def list_intel_files(
     page: int = 1,
     page_size: int = 20,
     status: LifecycleStatus | None = None,
+    q: str | None = None,
+    sort: str = "updated_at",
+    order: str = "desc",
     workspace_id: UUID | None = None,
 ) -> IntelFileListData:
     page = max(page, 1)
     page_size = min(max(page_size, 1), 100)
 
-    query = select(IntelFile).order_by(IntelFile.updated_at.desc())
+    sort_columns = {
+        "updated_at": IntelFile.updated_at,
+        "last_seen_at": IntelFile.last_seen_at,
+        "first_seen_at": IntelFile.first_seen_at,
+        "opportunity_score": IntelFile.opportunity_score,
+        "heat_score": IntelFile.heat_score,
+        "risk_score": IntelFile.risk_score,
+        "evidence_count": IntelFile.evidence_count,
+    }
+    sort_column = sort_columns.get(sort, IntelFile.updated_at)
+    sort_direction = asc if order == "asc" else desc
+
+    query = select(IntelFile)
     count_query = select(func.count()).select_from(IntelFile)
 
     if status is not None:
         query = query.where(IntelFile.status == status)
         count_query = count_query.where(IntelFile.status == status)
+    if q is not None and q.strip():
+        pattern = f"%{q.strip()}%"
+        search_filter = or_(
+            IntelFile.title.ilike(pattern),
+            IntelFile.thesis.ilike(pattern),
+        )
+        query = query.where(search_filter)
+        count_query = count_query.where(search_filter)
     if workspace_id is not None:
         query = query.where(IntelFile.workspace_id == workspace_id)
         count_query = count_query.where(IntelFile.workspace_id == workspace_id)
 
     total = db.scalar(count_query) or 0
-    items = db.scalars(query.offset((page - 1) * page_size).limit(page_size)).all()
+    items = db.scalars(
+        query.order_by(sort_direction(sort_column), IntelFile.id.asc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    ).all()
 
     return IntelFileListData(
         items=[to_intel_file_summary(item) for item in items],

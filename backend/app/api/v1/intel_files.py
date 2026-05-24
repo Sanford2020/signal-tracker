@@ -93,6 +93,9 @@ def list_intel_files_route(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     status: LifecycleStatus | None = Query(None),
+    q: str | None = Query(None, max_length=200),
+    sort: str = Query("updated_at", pattern="^(updated_at|last_seen_at|first_seen_at|opportunity_score|heat_score|risk_score|evidence_count)$"),
+    order: str = Query("desc", pattern="^(asc|desc)$"),
     x_workspace_id: UUID | None = Header(None, alias="X-Workspace-Id"),
     x_user_email: str | None = Header(None, alias="X-User-Email"),
     x_user_token: str | None = Header(None, alias="X-User-Token"),
@@ -104,6 +107,9 @@ def list_intel_files_route(
         page=page,
         page_size=page_size,
         status=status,
+        q=q,
+        sort=sort,
+        order=order,
         workspace_id=x_workspace_id,
     )
     return ApiResponse(success=True, data=data, error=None)
