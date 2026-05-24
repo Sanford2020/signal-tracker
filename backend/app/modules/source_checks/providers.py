@@ -238,6 +238,72 @@ class RssFeedProvider:
         return href.strip() if href else None
 
 
+class HackerNewsProvider:
+    """Search HN Search by Algolia for early technical/product chatter."""
+
+    api_base_url = "https://hn.algolia.com"
+
+    def __init__(
+        self,
+        *,
+        client: httpx.Client | None = None,
+        max_hits: int = 10,
+        timeout_seconds: float = 10.0,
+        tags: str = "story",
+    ) -> None:
+        self.client = client
+        self.max_hits = max(1, min(max_hits, 50))
+        self.timeout_seconds = timeout_seconds
+        self.tags = tags
+
+    def search(self, query: TrackingQuery) -> Sequence[CheckerResult]:
+        response = self._request(
+            "/api/v1/search_by_date",
+            params={
+                "query": query.query,
+                "tags": self.tags,
+                "hitsPerPage": self.max_hits,
+            },
+        )
+        response.raise_for_status()
+        payload = response.json()
+        hits = payload.get("hits", []) if isinstance(payload, dict) else []
+        results: list[CheckerResult] = []
+        for hit in hits[: self.max_hits]:
+            if not isinstance(hit, dict):
+                continue
+            title = hit.get("title") or hit.get("story_title")
+            object_id = hit.get("objectID") or hit.get("story_id")
+            if not title or not object_id:
+                continue
+            url = hit.get("url") or hit.get("story_url") or f"https://news.ycombinator.com/item?id={object_id}"
+            snippet = hit.get("story_text") or hit.get("comment_text")
+            results.append(
+                CheckerResult(
+                    title=str(title),
+                    url=str(url),
+                    snippet=str(snippet)[:500] if snippet else None,
+                    source_name="hacker-news",
+                    raw={
+                        "provider": "hacker_news",
+                        "object_id": str(object_id),
+                        "author": hit.get("author"),
+                        "points": hit.get("points"),
+                        "num_comments": hit.get("num_comments"),
+                        "created_at": hit.get("created_at"),
+                    },
+                )
+            )
+        return results
+
+    def _request(self, path: str, params: dict[str, str | int]) -> httpx.Response:
+        headers = {"User-Agent": "signal-tracker-hacker-news-provider"}
+        if self.client is not None:
+            return self.client.get(path, params=params, headers=headers)
+        with httpx.Client(base_url=self.api_base_url, timeout=self.timeout_seconds) as client:
+            return client.get(path, params=params, headers=headers)
+
+
 def get_default_provider_registry() -> SourceProviderRegistry:
     settings = get_settings()
     github_provider = GitHubReleasesProvider(
@@ -251,12 +317,20 @@ def get_default_provider_registry() -> SourceProviderRegistry:
         max_entries_per_feed=settings.rss_provider_max_entries_per_feed,
         timeout_seconds=settings.rss_provider_timeout_seconds,
     )
+    hacker_news_provider = HackerNewsProvider(
+        max_hits=settings.hacker_news_provider_max_hits,
+        timeout_seconds=settings.hacker_news_provider_timeout_seconds,
+        tags=settings.hacker_news_provider_tags,
+    )
     return SourceProviderRegistry(
         {
             "github": github_provider,
             "github_releases": github_provider,
             "rss": rss_provider,
             "news": rss_provider,
-            "search": rss_provider,
+            "search": hacker_news_provider,
+            "hacker_news": hacker_news_provider,
+            "hn": hacker_news_provider,
+            "social": hacker_news_provider,
         }
     )

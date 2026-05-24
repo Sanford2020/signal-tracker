@@ -13,9 +13,11 @@ from app.main import app
 from app.models import SourceCheckResult, SourceCheckRun, TrackingQuery
 from app.modules.source_checks.providers import (
     GitHubReleasesProvider,
+    HackerNewsProvider,
     ProviderBackedSourceChecker,
     RssFeedProvider,
     SourceProviderRegistry,
+    get_default_provider_registry,
 )
 from app.modules.source_checks.service import CheckerResult, run_source_checks
 from app.schemas.source_checks import SourceCheckRunRequest
@@ -74,7 +76,15 @@ class FailingChecker:
         raise RuntimeError("provider unavailable")
 
 
-def test_api_run_source_checks_consumes_enabled_queries(client: TestClient, db_session: Session) -> None:
+def test_api_run_source_checks_consumes_enabled_queries(
+    client: TestClient,
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "app.api.v1.source_checks.get_default_provider_registry",
+        lambda: SourceProviderRegistry(),
+    )
     _create_tracking_queries(client)
     response = client.post("/api/v1/source-checks/run", json={"limit": 2})
 
@@ -90,7 +100,11 @@ def test_api_run_source_checks_consumes_enabled_queries(client: TestClient, db_s
     assert stored_run.checked_query_count == 2
 
 
-def test_api_lists_recent_source_check_runs(client: TestClient) -> None:
+def test_api_lists_recent_source_check_runs(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "app.api.v1.source_checks.get_default_provider_registry",
+        lambda: SourceProviderRegistry(),
+    )
     _create_tracking_queries(client)
     run = client.post("/api/v1/source-checks/run", json={"limit": 2})
     assert run.status_code == 200
@@ -366,3 +380,73 @@ def test_rss_feed_provider_supports_atom_links() -> None:
     results = provider.search(query)
 
     assert [item.url for item in results] == ["https://example.com/robotics-policy"]
+
+
+def test_hacker_news_provider_returns_search_hits() -> None:
+    seen_params: dict[str, str] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/v1/search_by_date"
+        seen_params.update(dict(request.url.params))
+        return httpx.Response(
+            200,
+            json={
+                "hits": [
+                    {
+                        "title": "Open source agents are spreading fast",
+                        "url": "https://example.com/agents",
+                        "story_text": "Developers discuss agent workflow adoption.",
+                        "objectID": "123456",
+                        "author": "example_user",
+                        "points": 42,
+                        "num_comments": 17,
+                        "created_at": "2026-05-24T12:00:00Z",
+                    },
+                    {
+                        "title": None,
+                        "objectID": None,
+                    },
+                ]
+            },
+        )
+
+    client = httpx.Client(
+        base_url="https://hn.algolia.com",
+        transport=httpx.MockTransport(handler),
+    )
+    provider = HackerNewsProvider(client=client, max_hits=5)
+    query = TrackingQuery(
+        intel_file_id=uuid4(),
+        query="open source agents",
+        normalized_query="open source agents",
+        source_hint="hacker_news",
+    )
+
+    results = provider.search(query)
+
+    assert seen_params == {
+        "query": "open source agents",
+        "tags": "story",
+        "hitsPerPage": "5",
+    }
+    assert len(results) == 1
+    assert results[0].title == "Open source agents are spreading fast"
+    assert results[0].url == "https://example.com/agents"
+    assert results[0].source_name == "hacker-news"
+    assert results[0].raw == {
+        "provider": "hacker_news",
+        "object_id": "123456",
+        "author": "example_user",
+        "points": 42,
+        "num_comments": 17,
+        "created_at": "2026-05-24T12:00:00Z",
+    }
+
+
+def test_default_provider_registry_routes_search_to_hacker_news() -> None:
+    registry = get_default_provider_registry()
+
+    assert isinstance(registry.get("search"), HackerNewsProvider)
+    assert isinstance(registry.get("hacker_news"), HackerNewsProvider)
+    assert isinstance(registry.get("hn"), HackerNewsProvider)
+    assert isinstance(registry.get("social"), HackerNewsProvider)

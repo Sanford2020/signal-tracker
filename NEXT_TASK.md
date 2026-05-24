@@ -39,6 +39,9 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
   - Source check runs now persist `workspace_id` via migration `0014_source_check_run_workspace`.
   - Report exports use authenticated frontend downloads.
   - Backend report dependency `reportlab` is recorded for reproducible installs.
+- H7 Hacker News source pack is implemented and validated:
+  - `search`, `hacker_news`, `hn`, and `social` source hints route to HN Search.
+  - HN provider uses public no-key search endpoints and stores source metadata for match suggestions.
 
 ## Goal
 
@@ -58,6 +61,5 @@ Create the real hosted staging deployment using the prepared Render Blueprint, a
 
 ## Next Implementation Candidates After Staging
 
-- Add RSS/Hacker News provider pack for AI market and product signals.
 - Build source operations UI for provider health, run history, and match suggestion triage.
 - Add saved filters and sorting to the Intel Files workbench.

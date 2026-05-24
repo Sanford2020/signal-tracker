@@ -8,12 +8,39 @@ P0 planning review completed on 2026-05-23.
 P1-P4 and H1-H4 implementation completed and re-reviewed on 2026-05-24.
 H5 hardening gap closure completed on 2026-05-24.
 H6 workspace isolation hardening completed on 2026-05-24.
+H7 Hacker News source pack completed on 2026-05-24.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
-The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, and known follow-ups for richer commercial UI depth and real-world source pack expansion.
+The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub/RSS/Hacker News source providers, and known follow-ups for richer commercial UI depth.
+
+## 2026-05-24 H7 Hacker News Source Pack Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Added no-credential Hacker News provider using HN Search by Algolia.
+- Routed `search`, `hacker_news`, `hn`, and `social` source hints to Hacker News.
+- Added provider tuning env vars for max hits, timeout, and tags.
+- Added deterministic provider and registry tests.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Focused source check tests: passed.
+
+### Residual Risks
+
+- HN Search is public and no-key, so production should keep conservative query limits and monitor provider failures.
+- Broader non-HN source coverage still depends on configured RSS feeds and future provider packs.
 
 ## 2026-05-24 H6 Workspace Isolation Hardening Review
 
@@ -100,7 +127,7 @@ Resolved. Commercial capabilities were implemented after MVP slices in P4.
 
 ## Open Questions
 
-- Which source pack should follow GitHub Releases: RSS/Hacker News, GitHub Issues/Commits, or arXiv?
+- Which source pack should follow GitHub Releases/RSS/Hacker News: GitHub Issues/Commits, arXiv, or curated company blogs?
 - Should hosted staging run with embedded Celery Beat on the worker service, or split Beat into a separate Render worker after traffic increases?
 - Which commercial workflow deserves the next UI pass: source operations, saved views, or team review queues?
 

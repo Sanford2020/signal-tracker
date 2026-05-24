@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     rss_feed_urls: str = ""
     rss_provider_max_entries_per_feed: int = 20
     rss_provider_timeout_seconds: float = 10.0
+    hacker_news_provider_max_hits: int = 10
+    hacker_news_provider_timeout_seconds: float = 10.0
+    hacker_news_provider_tags: str = "story"
 
     alert_opportunity_threshold: float = 7.0
     alert_credibility_increase_min: float = 2.0
