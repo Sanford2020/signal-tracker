@@ -126,13 +126,15 @@ def generate_tracking_queries(
     db: Session,
     intel_file_id: UUID,
     payload: TrackingQueryGenerateRequest,
+    *,
+    workspace_id: UUID | None = None,
 ) -> TrackingQueryGenerateData:
     intel_file = db.scalar(
         select(IntelFile)
         .options(selectinload(IntelFile.evidence), selectinload(IntelFile.tracking_queries))
         .where(IntelFile.id == intel_file_id)
     )
-    if intel_file is None:
+    if intel_file is None or (workspace_id is not None and intel_file.workspace_id != workspace_id):
         raise ValueError("Intel file not found.")
 
     if payload.regenerate:

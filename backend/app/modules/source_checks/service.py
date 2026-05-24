@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Protocol
+from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -34,11 +35,11 @@ def run_source_checks(
     db: Session,
     payload: SourceCheckRunRequest,
     checker: SourceChecker | None = None,
-    workspace_id=None,
+    workspace_id: UUID | None = None,
 ) -> SourceCheckRunData:
     active_checker = checker or NoopSourceChecker()
     started_at = datetime.now(UTC)
-    run = SourceCheckRun(status="running", started_at=started_at)
+    run = SourceCheckRun(status="running", started_at=started_at, workspace_id=workspace_id)
     db.add(run)
     db.flush()
 
@@ -108,12 +109,16 @@ def run_source_checks(
     return SourceCheckRunData(run=run, results=list(results))
 
 
-def list_source_check_runs(db: Session, *, limit: int = 10) -> list[SourceCheckRun]:
+def list_source_check_runs(
+    db: Session,
+    *,
+    limit: int = 10,
+    workspace_id: UUID | None = None,
+) -> list[SourceCheckRun]:
     capped_limit = min(max(limit, 1), 50)
+    stmt = select(SourceCheckRun).order_by(SourceCheckRun.started_at.desc(), SourceCheckRun.id.desc()).limit(capped_limit)
+    if workspace_id is not None:
+        stmt = stmt.where(SourceCheckRun.workspace_id == workspace_id)
     return list(
-        db.scalars(
-            select(SourceCheckRun)
-            .order_by(SourceCheckRun.started_at.desc(), SourceCheckRun.id.desc())
-            .limit(capped_limit)
-        ).all()
+        db.scalars(stmt).all()
     )

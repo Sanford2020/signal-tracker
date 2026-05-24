@@ -26,6 +26,7 @@ class SourceCheckResultRead(BaseModel):
 
 class SourceCheckRunRead(BaseModel):
     id: UUID
+    workspace_id: UUID | None
     status: str
     checked_query_count: int
     result_count: int

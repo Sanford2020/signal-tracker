@@ -34,6 +34,11 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
   - Homepage scaffold replaced with a working dashboard.
   - REVIEW status updated.
   - Stale temporary SQLite artifact removed.
+- H6 workspace isolation hardening is implemented and validated:
+  - Commercial routes now enforce workspace access and scope service queries.
+  - Source check runs now persist `workspace_id` via migration `0014_source_check_run_workspace`.
+  - Report exports use authenticated frontend downloads.
+  - Backend report dependency `reportlab` is recorded for reproducible installs.
 
 ## Goal
 
@@ -48,7 +53,7 @@ Create the real hosted staging deployment using the prepared Render Blueprint, a
 - Create `.env.production` from `.env.production.example`.
 - Run `scripts\predeploy-check.ps1`.
 - Run `scripts\check-env-readiness.ps1` against the production-like env file.
-- Run migrations through `0013_audit_events`.
+- Run migrations through `0014_source_check_run_workspace`.
 - Run `scripts\smoke-staging.ps1` against hosted URLs with `-AdminApiKey`.
 
 ## Next Implementation Candidates After Staging

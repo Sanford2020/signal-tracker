@@ -26,7 +26,7 @@ def list_source_check_runs_route(
     db: Session = Depends(get_db),
 ) -> ApiResponse[SourceCheckRunListData]:
     require_workspace_access(db, x_workspace_id, x_user_email, x_user_token)
-    runs = list_source_check_runs(db, limit=limit)
+    runs = list_source_check_runs(db, limit=limit, workspace_id=x_workspace_id)
     return ApiResponse(
         success=True,
         data=SourceCheckRunListData(
@@ -74,7 +74,11 @@ def run_source_checks_route(
 def generate_match_suggestions_route(
     run_id: UUID,
     payload: MatchSuggestionGenerateRequest,
+    x_workspace_id: UUID | None = Header(None, alias="X-Workspace-Id"),
+    x_user_email: str | None = Header(None, alias="X-User-Email"),
+    x_user_token: str | None = Header(None, alias="X-User-Token"),
     db: Session = Depends(get_db),
 ) -> ApiResponse[MatchSuggestionGenerateData]:
-    data = generate_match_suggestions_for_run(db, run_id, payload)
+    require_workspace_access(db, x_workspace_id, x_user_email, x_user_token)
+    data = generate_match_suggestions_for_run(db, run_id, payload, workspace_id=x_workspace_id)
     return ApiResponse(success=True, data=data, error=None)

@@ -169,10 +169,14 @@ def attach_evidence_route(
 def evaluate_intel_file_route(
     intel_file_id: UUID,
     payload: LifecycleEvaluateRequest,
+    x_workspace_id: UUID | None = Header(None, alias="X-Workspace-Id"),
+    x_user_email: str | None = Header(None, alias="X-User-Email"),
+    x_user_token: str | None = Header(None, alias="X-User-Token"),
     db: Session = Depends(get_db),
 ) -> ApiResponse[LifecycleEvaluateData]:
     try:
-        data = evaluate_intel_file(db, intel_file_id, payload)
+        require_workspace_access(db, x_workspace_id, x_user_email, x_user_token)
+        data = evaluate_intel_file(db, intel_file_id, payload, workspace_id=x_workspace_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return ApiResponse(success=True, data=data, error=None)
@@ -182,10 +186,14 @@ def evaluate_intel_file_route(
 def override_intel_file_status_route(
     intel_file_id: UUID,
     payload: LifecycleStatusOverrideRequest,
+    x_workspace_id: UUID | None = Header(None, alias="X-Workspace-Id"),
+    x_user_email: str | None = Header(None, alias="X-User-Email"),
+    x_user_token: str | None = Header(None, alias="X-User-Token"),
     db: Session = Depends(get_db),
 ) -> ApiResponse[LifecycleStatusOverrideData]:
     try:
-        data = override_intel_file_status(db, intel_file_id, payload)
+        require_workspace_access(db, x_workspace_id, x_user_email, x_user_token)
+        data = override_intel_file_status(db, intel_file_id, payload, workspace_id=x_workspace_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return ApiResponse(success=True, data=data, error=None)
@@ -195,10 +203,14 @@ def override_intel_file_status_route(
 def score_intel_file_route(
     intel_file_id: UUID,
     payload: ScoreUpdateRequest,
+    x_workspace_id: UUID | None = Header(None, alias="X-Workspace-Id"),
+    x_user_email: str | None = Header(None, alias="X-User-Email"),
+    x_user_token: str | None = Header(None, alias="X-User-Token"),
     db: Session = Depends(get_db),
 ) -> ApiResponse[ScoreUpdateData]:
     try:
-        data = score_intel_file(db, intel_file_id, payload)
+        require_workspace_access(db, x_workspace_id, x_user_email, x_user_token)
+        data = score_intel_file(db, intel_file_id, payload, workspace_id=x_workspace_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return ApiResponse(success=True, data=data, error=None)
@@ -208,10 +220,14 @@ def score_intel_file_route(
 def generate_tracking_queries_route(
     intel_file_id: UUID,
     payload: TrackingQueryGenerateRequest,
+    x_workspace_id: UUID | None = Header(None, alias="X-Workspace-Id"),
+    x_user_email: str | None = Header(None, alias="X-User-Email"),
+    x_user_token: str | None = Header(None, alias="X-User-Token"),
     db: Session = Depends(get_db),
 ) -> ApiResponse[TrackingQueryGenerateData]:
     try:
-        data = generate_tracking_queries(db, intel_file_id, payload)
+        require_workspace_access(db, x_workspace_id, x_user_email, x_user_token)
+        data = generate_tracking_queries(db, intel_file_id, payload, workspace_id=x_workspace_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return ApiResponse(success=True, data=data, error=None)
@@ -221,10 +237,19 @@ def generate_tracking_queries_route(
 def list_match_suggestions_route(
     intel_file_id: UUID,
     status: str | None = Query("open"),
+    x_workspace_id: UUID | None = Header(None, alias="X-Workspace-Id"),
+    x_user_email: str | None = Header(None, alias="X-User-Email"),
+    x_user_token: str | None = Header(None, alias="X-User-Token"),
     db: Session = Depends(get_db),
 ) -> ApiResponse[MatchSuggestionListData]:
     try:
-        data = list_match_suggestions(db, intel_file_id, status=status)
+        require_workspace_access(db, x_workspace_id, x_user_email, x_user_token)
+        data = list_match_suggestions(
+            db,
+            intel_file_id,
+            status=status,
+            workspace_id=x_workspace_id,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return ApiResponse(success=True, data=data, error=None)
@@ -233,10 +258,14 @@ def list_match_suggestions_route(
 @router.get("/{intel_file_id}/trend", response_model=ApiResponse[TrendArchiveListData])
 def list_trend_archive_snapshots_route(
     intel_file_id: UUID,
+    x_workspace_id: UUID | None = Header(None, alias="X-Workspace-Id"),
+    x_user_email: str | None = Header(None, alias="X-User-Email"),
+    x_user_token: str | None = Header(None, alias="X-User-Token"),
     db: Session = Depends(get_db),
 ) -> ApiResponse[TrendArchiveListData]:
     try:
-        data = list_trend_archive_snapshots(db, intel_file_id)
+        require_workspace_access(db, x_workspace_id, x_user_email, x_user_token)
+        data = list_trend_archive_snapshots(db, intel_file_id, workspace_id=x_workspace_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return ApiResponse(success=True, data=data, error=None)

@@ -1,10 +1,11 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.api.v1.dependencies import require_workspace_access
 from app.db.session import get_db
 from app.models import RawItem
 from app.modules.extraction.normalize import ExtractionError
@@ -19,10 +20,14 @@ router = APIRouter(tags=["extraction"])
 @router.post("/raw-items/{raw_item_id}/analyze", response_model=ApiResponse[AnalyzeResponseData])
 def analyze_raw_item_route(
     raw_item_id: UUID,
+    x_workspace_id: UUID | None = Header(None, alias="X-Workspace-Id"),
+    x_user_email: str | None = Header(None, alias="X-User-Email"),
+    x_user_token: str | None = Header(None, alias="X-User-Token"),
     db: Session = Depends(get_db),
 ) -> ApiResponse[AnalyzeResponseData] | JSONResponse:
     try:
-        analysis = analyze_raw_item(db, raw_item_id)
+        require_workspace_access(db, x_workspace_id, x_user_email, x_user_token)
+        analysis = analyze_raw_item(db, raw_item_id, workspace_id=x_workspace_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ExtractionError as exc:

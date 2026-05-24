@@ -7,12 +7,44 @@ Review findings, risks, and approval notes for Signal Tracker.
 P0 planning review completed on 2026-05-23.
 P1-P4 and H1-H4 implementation completed and re-reviewed on 2026-05-24.
 H5 hardening gap closure completed on 2026-05-24.
+H6 workspace isolation hardening completed on 2026-05-24.
 
 ## Verdict
 
-`APPROVE_FOR_HOSTED_STAGING`
+`APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
-The repository is ready for hosted staging deployment, with known follow-ups for richer commercial UI depth and real-world source pack expansion.
+The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, and known follow-ups for richer commercial UI depth and real-world source pack expansion.
+
+## 2026-05-24 H6 Workspace Isolation Hardening Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Workspace-scoped briefing and report exports.
+- Workspace-scoped alerts, source check runs, match suggestions, lifecycle operations, scoring, tracking query generation, extraction, and trend archives.
+- Source check run ownership persisted via `0014_source_check_run_workspace`.
+- Frontend report export switched from unauthenticated links to header-bearing downloads.
+- Reproducible backend dependency set includes `reportlab`.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Backend pytest: 145 passed.
+- Frontend type-check: passed.
+- Frontend production build: passed.
+- Alembic upgrade through `0014_source_check_run_workspace`: passed on SQLite migration smoke test.
+
+### Residual Risks
+
+- Hosted Render deployment is still not executed in the real account environment.
+- Embedded Celery Beat is acceptable for one worker, but should be split or locked before horizontal worker scaling.
+- Additional source packs are still needed for broad AI opportunity tracking.
 
 ## 2026-05-24 H5 Hardening Gap Closure Review
 

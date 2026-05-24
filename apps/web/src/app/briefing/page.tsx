@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
-import { fetchDailyBriefing, fetchWeeklyRetrospective } from "@/lib/api";
+import { fetchDailyBriefing, fetchWeeklyRetrospective, workspaceHeaders } from "@/lib/api";
 import type { BriefingItem, DailyBriefingData, WeeklyRetrospectiveData } from "@/types/briefings";
 
 const SECTION_LABELS: Array<[keyof DailyBriefingData["sections"], string]> = [
@@ -100,14 +100,32 @@ export default function BriefingPage() {
     }
   }, [days, hours, mode]);
 
-  const markdownHref =
+  const markdownPath =
     mode === "daily"
-      ? `${API_BASE}/api/v1/reports/daily.md?hours=${hours}`
-      : `${API_BASE}/api/v1/reports/weekly.md?days=${days}`;
-  const pdfHref =
+      ? `/api/v1/reports/daily.md?hours=${hours}`
+      : `/api/v1/reports/weekly.md?days=${days}`;
+  const pdfPath =
     mode === "daily"
-      ? `${API_BASE}/api/v1/reports/daily.pdf?hours=${hours}`
-      : `${API_BASE}/api/v1/reports/weekly.pdf?days=${days}`;
+      ? `/api/v1/reports/daily.pdf?hours=${hours}`
+      : `/api/v1/reports/weekly.pdf?days=${days}`;
+
+  async function downloadReport(path: string, filename: string) {
+    try {
+      const response = await fetch(`${API_BASE}${path}`, { headers: workspaceHeaders() });
+      if (!response.ok) {
+        throw new Error(`Report export failed: ${response.status}`);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to export report.");
+    }
+  }
 
   useEffect(() => {
     void loadBriefing();
@@ -150,12 +168,12 @@ export default function BriefingPage() {
           <button type="button" onClick={() => void loadBriefing()} className="text-sm text-sky-400 hover:text-sky-300">
             Refresh
           </button>
-          <a href={markdownHref} className="text-sm text-sky-400 hover:text-sky-300">
+          <button type="button" onClick={() => void downloadReport(markdownPath, `${mode}-briefing.md`)} className="text-sm text-sky-400 hover:text-sky-300">
             Markdown
-          </a>
-          <a href={pdfHref} className="text-sm text-sky-400 hover:text-sky-300">
+          </button>
+          <button type="button" onClick={() => void downloadReport(pdfPath, `${mode}-briefing.pdf`)} className="text-sm text-sky-400 hover:text-sky-300">
             PDF
-          </a>
+          </button>
         </div>
       </div>
 

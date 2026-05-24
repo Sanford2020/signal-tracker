@@ -1,5 +1,6 @@
 export type SourceCheckRun = {
   id: string;
+  workspace_id: string | null;
   status: string;
   checked_query_count: number;
   result_count: number;

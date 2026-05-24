@@ -178,13 +178,15 @@ def evaluate_intel_file(
     db: Session,
     intel_file_id: UUID,
     payload: LifecycleEvaluateRequest,
+    *,
+    workspace_id: UUID | None = None,
 ) -> LifecycleEvaluateData:
     intel_file = db.scalar(
         select(IntelFile)
         .options(selectinload(IntelFile.evidence))
         .where(IntelFile.id == intel_file_id)
     )
-    if intel_file is None:
+    if intel_file is None or (workspace_id is not None and intel_file.workspace_id != workspace_id):
         raise ValueError("Intel file not found.")
 
     settings = get_settings()
@@ -253,9 +255,11 @@ def override_intel_file_status(
     db: Session,
     intel_file_id: UUID,
     payload: LifecycleStatusOverrideRequest,
+    *,
+    workspace_id: UUID | None = None,
 ) -> LifecycleStatusOverrideData:
     intel_file = db.scalar(select(IntelFile).where(IntelFile.id == intel_file_id))
-    if intel_file is None:
+    if intel_file is None or (workspace_id is not None and intel_file.workspace_id != workspace_id):
         raise ValueError("Intel file not found.")
 
     now = _ensure_utc(payload.now or datetime.now(UTC))

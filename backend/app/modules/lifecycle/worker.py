@@ -32,7 +32,7 @@ def run_lifecycle_worker(db: Session, payload: LifecycleWorkerRunRequest) -> Lif
     now = _ensure_utc(payload.now or datetime.now(UTC))
     cutoff = now - timedelta(days=settings.lifecycle_dormancy_days)
 
-    candidates = db.scalars(
+    stmt = (
         select(IntelFile)
         .where(
             IntelFile.status.not_in(TERMINAL_STATUSES),
@@ -43,7 +43,10 @@ def run_lifecycle_worker(db: Session, payload: LifecycleWorkerRunRequest) -> Lif
         )
         .order_by(IntelFile.last_seen_at.asc(), IntelFile.id.asc())
         .limit(payload.limit)
-    ).all()
+    )
+    if payload.workspace_id is not None:
+        stmt = stmt.where(IntelFile.workspace_id == payload.workspace_id)
+    candidates = db.scalars(stmt).all()
 
     transitions: list[LifecycleWorkerTransition] = []
     for intel_file in candidates:
@@ -51,6 +54,7 @@ def run_lifecycle_worker(db: Session, payload: LifecycleWorkerRunRequest) -> Lif
             db,
             intel_file.id,
             LifecycleEvaluateRequest(now=now, reason=payload.reason),
+            workspace_id=payload.workspace_id,
         )
         if result.previous_status != result.next_status:
             transitions.append(

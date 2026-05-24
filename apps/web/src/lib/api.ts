@@ -38,7 +38,7 @@ import { extractErrorMessage } from "@/lib/inbox-validation";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
-function workspaceHeaders(): Record<string, string> {
+export function workspaceHeaders(): Record<string, string> {
   if (typeof window === "undefined") {
     return {};
   }

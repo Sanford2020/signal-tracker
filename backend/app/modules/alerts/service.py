@@ -196,13 +196,19 @@ def list_alerts(
     status: AlertStatus | None = None,
     alert_type: AlertType | None = None,
     severity: AlertSeverity | None = None,
+    workspace_id: UUID | None = None,
 ) -> AlertListData:
     query = (
         select(AlertEvent)
         .options(selectinload(AlertEvent.intel_file))
+        .join(IntelFile, IntelFile.id == AlertEvent.intel_file_id)
         .order_by(AlertEvent.created_at.desc())
     )
-    count_query = select(func.count()).select_from(AlertEvent)
+    count_query = select(func.count()).select_from(AlertEvent).join(IntelFile, IntelFile.id == AlertEvent.intel_file_id)
+
+    if workspace_id is not None:
+        query = query.where(IntelFile.workspace_id == workspace_id)
+        count_query = count_query.where(IntelFile.workspace_id == workspace_id)
 
     if status is not None:
         query = query.where(AlertEvent.status == status)
@@ -239,6 +245,8 @@ def update_alert_status(
     db: Session,
     alert_id: UUID,
     payload: AlertUpdateRequest,
+    *,
+    workspace_id: UUID | None = None,
 ) -> AlertSummary:
     if payload.status not in {AlertStatus.ACKNOWLEDGED, AlertStatus.DISMISSED}:
         raise ValueError("Only acknowledged or dismissed status updates are supported.")
@@ -246,7 +254,9 @@ def update_alert_status(
     alert = db.scalar(
         select(AlertEvent)
         .options(selectinload(AlertEvent.intel_file))
+        .join(IntelFile, IntelFile.id == AlertEvent.intel_file_id)
         .where(AlertEvent.id == alert_id)
+        .where(IntelFile.workspace_id == workspace_id if workspace_id is not None else True)
     )
     if alert is None:
         raise ValueError("Alert not found.")

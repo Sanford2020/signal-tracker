@@ -10,6 +10,7 @@ class LifecycleWorkerRunRequest(BaseModel):
     now: datetime | None = None
     limit: int = Field(50, ge=1, le=500)
     reason: str = "lifecycle worker"
+    workspace_id: UUID | None = None
 
 
 class LifecycleWorkerTransition(BaseModel):

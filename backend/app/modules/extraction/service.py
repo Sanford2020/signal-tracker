@@ -49,13 +49,18 @@ def to_analysis_read_dict(analysis: SignalAnalysis) -> dict:
     }
 
 
-def analyze_raw_item(db: Session, raw_item_id: UUID) -> SignalAnalysis:
+def analyze_raw_item(
+    db: Session,
+    raw_item_id: UUID,
+    *,
+    workspace_id: UUID | None = None,
+) -> SignalAnalysis:
     raw_item = db.scalar(
         select(RawItem)
         .options(selectinload(RawItem.source), selectinload(RawItem.signal_analysis))
         .where(RawItem.id == raw_item_id)
     )
-    if raw_item is None:
+    if raw_item is None or (workspace_id is not None and raw_item.workspace_id != workspace_id):
         raise ValueError("Raw item not found.")
 
     if raw_item.signal_analysis is not None:

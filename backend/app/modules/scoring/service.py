@@ -230,6 +230,8 @@ def score_intel_file(
     db: Session,
     intel_file_id: UUID,
     payload: ScoreUpdateRequest,
+    *,
+    workspace_id: UUID | None = None,
 ) -> ScoreUpdateData:
     intel_file = db.scalar(
         select(IntelFile)
@@ -238,7 +240,7 @@ def score_intel_file(
         )
         .where(IntelFile.id == intel_file_id)
     )
-    if intel_file is None:
+    if intel_file is None or (workspace_id is not None and intel_file.workspace_id != workspace_id):
         raise ValueError("Intel file not found.")
 
     previous_scores = {

@@ -111,9 +111,11 @@ def generate_match_suggestions_for_run(
     db: Session,
     run_id: UUID,
     payload: MatchSuggestionGenerateRequest,
+    *,
+    workspace_id: UUID | None = None,
 ) -> MatchSuggestionGenerateData:
     run = db.scalar(select(SourceCheckRun).where(SourceCheckRun.id == run_id))
-    if run is None:
+    if run is None or (workspace_id is not None and run.workspace_id != workspace_id):
         raise ValueError("Source check run not found.")
 
     results = db.scalars(
@@ -169,9 +171,10 @@ def list_match_suggestions(
     intel_file_id: UUID,
     *,
     status: str | None = "open",
+    workspace_id: UUID | None = None,
 ) -> MatchSuggestionListData:
     intel_file = db.scalar(select(IntelFile).where(IntelFile.id == intel_file_id))
-    if intel_file is None:
+    if intel_file is None or (workspace_id is not None and intel_file.workspace_id != workspace_id):
         raise ValueError("Intel file not found.")
 
     query = (
@@ -192,16 +195,21 @@ def update_match_suggestion_status(
     db: Session,
     suggestion_id: UUID,
     payload: MatchSuggestionStatusUpdateRequest,
+    *,
+    workspace_id: UUID | None = None,
 ) -> MatchSuggestionStatusUpdateData:
     row = db.execute(
-        select(MatchSuggestion, SourceCheckResult)
+        select(MatchSuggestion, SourceCheckResult, IntelFile)
         .join(SourceCheckResult, SourceCheckResult.id == MatchSuggestion.source_check_result_id)
+        .join(IntelFile, IntelFile.id == MatchSuggestion.intel_file_id)
         .where(MatchSuggestion.id == suggestion_id)
     ).first()
     if row is None:
         raise ValueError("Match suggestion not found.")
 
-    suggestion, result = row
+    suggestion, result, intel_file = row
+    if workspace_id is not None and intel_file.workspace_id != workspace_id:
+        raise ValueError("Match suggestion not found.")
     suggestion.status = payload.status
     suggestion.decided_at = datetime.now(UTC) if payload.status != "open" else None
     db.commit()
@@ -265,16 +273,21 @@ def accept_match_suggestion(
     db: Session,
     suggestion_id: UUID,
     payload: MatchSuggestionAcceptRequest,
+    *,
+    workspace_id: UUID | None = None,
 ) -> MatchSuggestionAcceptData:
     row = db.execute(
-        select(MatchSuggestion, SourceCheckResult)
+        select(MatchSuggestion, SourceCheckResult, IntelFile)
         .join(SourceCheckResult, SourceCheckResult.id == MatchSuggestion.source_check_result_id)
+        .join(IntelFile, IntelFile.id == MatchSuggestion.intel_file_id)
         .where(MatchSuggestion.id == suggestion_id)
     ).first()
     if row is None:
         raise ValueError("Match suggestion not found.")
 
-    suggestion, result = row
+    suggestion, result, intel_file = row
+    if workspace_id is not None and intel_file.workspace_id != workspace_id:
+        raise ValueError("Match suggestion not found.")
     raw_item, duplicate = _raw_item_from_result(db, result)
     existing_evidence = db.scalar(
         select(Evidence).where(
@@ -293,6 +306,7 @@ def accept_match_suggestion(
                 attached_by=AttachedBy.USER,
                 rationale=payload.rationale or suggestion.rationale,
             ),
+            workspace_id=workspace_id,
         )
     else:
         evidence = existing_evidence

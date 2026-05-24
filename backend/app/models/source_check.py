@@ -10,9 +10,15 @@ from app.db.base import Base
 
 class SourceCheckRun(Base):
     __tablename__ = "source_check_runs"
-    __table_args__ = (Index("ix_source_check_runs_started_at", "started_at"),)
+    __table_args__ = (
+        Index("ix_source_check_runs_started_at", "started_at"),
+        Index("ix_source_check_runs_workspace_started", "workspace_id", "started_at"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    workspace_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="SET NULL"), nullable=True
+    )
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
     checked_query_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     result_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

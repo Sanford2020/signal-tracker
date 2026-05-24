@@ -31,13 +31,14 @@ def _apply_file_state(snapshot: TrendArchiveSnapshot, intel_file: IntelFile) -> 
 def run_trend_archive_snapshots(
     db: Session,
     payload: TrendArchiveRunRequest,
+    *,
+    workspace_id: UUID | None = None,
 ) -> TrendArchiveRunData:
     archive_date = payload.archive_date or _today_utc()
-    intel_files = db.scalars(
-        select(IntelFile)
-        .order_by(IntelFile.updated_at.desc(), IntelFile.id.asc())
-        .limit(payload.limit)
-    ).all()
+    stmt = select(IntelFile).order_by(IntelFile.updated_at.desc(), IntelFile.id.asc()).limit(payload.limit)
+    if workspace_id is not None:
+        stmt = stmt.where(IntelFile.workspace_id == workspace_id)
+    intel_files = db.scalars(stmt).all()
 
     created_count = 0
     updated_count = 0
@@ -85,9 +86,11 @@ def run_trend_archive_snapshots(
 def list_trend_archive_snapshots(
     db: Session,
     intel_file_id: UUID,
+    *,
+    workspace_id: UUID | None = None,
 ) -> TrendArchiveListData:
     intel_file = db.scalar(select(IntelFile).where(IntelFile.id == intel_file_id))
-    if intel_file is None:
+    if intel_file is None or (workspace_id is not None and intel_file.workspace_id != workspace_id):
         raise ValueError("Intel file not found.")
 
     snapshots = db.scalars(

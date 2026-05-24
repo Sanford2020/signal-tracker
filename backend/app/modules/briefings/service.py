@@ -69,17 +69,16 @@ def _item(file: IntelFile, reason: str) -> BriefingItem:
     )
 
 
-def _load_files(db: Session) -> list[IntelFile]:
-    return list(
-        db.scalars(
-            select(IntelFile).options(
-                selectinload(IntelFile.evidence)
-                .selectinload(Evidence.raw_item)
-                .selectinload(RawItem.source),
-                selectinload(IntelFile.events),
-            )
-        ).all()
+def _load_files(db: Session, *, workspace_id: UUID | None = None) -> list[IntelFile]:
+    stmt = select(IntelFile).options(
+        selectinload(IntelFile.evidence)
+        .selectinload(Evidence.raw_item)
+        .selectinload(RawItem.source),
+        selectinload(IntelFile.events),
     )
+    if workspace_id is not None:
+        stmt = stmt.where(IntelFile.workspace_id == workspace_id)
+    return list(db.scalars(stmt).all())
 
 
 def _recent_events(file: IntelFile, since: datetime) -> list[IntelEvent]:
@@ -134,13 +133,14 @@ def generate_daily_briefing(
     *,
     hours: int = 24,
     min_opportunity: float | None = None,
+    workspace_id: UUID | None = None,
 ) -> DailyBriefingData:
     settings = get_settings()
     window_hours = min(max(hours, 1), 168)
     opportunity_threshold = min_opportunity or settings.alert_opportunity_threshold
     generated_at = datetime.now(UTC)
     since = generated_at - timedelta(hours=window_hours)
-    files = _load_files(db)
+    files = _load_files(db, workspace_id=workspace_id)
 
     new_files: list[BriefingItem] = []
     updated_files: list[BriefingItem] = []
@@ -209,13 +209,14 @@ def generate_weekly_retrospective(
     *,
     days: int = 7,
     min_opportunity: float | None = None,
+    workspace_id: UUID | None = None,
 ) -> WeeklyRetrospectiveData:
     settings = get_settings()
     window_days = min(max(days, 1), 31)
     opportunity_threshold = min_opportunity or settings.alert_opportunity_threshold
     generated_at = datetime.now(UTC)
     since = generated_at - timedelta(days=window_days)
-    files = _load_files(db)
+    files = _load_files(db, workspace_id=workspace_id)
 
     changed_files: list[BriefingItem] = []
     resurrected: list[BriefingItem] = []
