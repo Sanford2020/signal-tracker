@@ -28,14 +28,21 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
 - `TASK-H4-06: Runtime Readiness Endpoint` is implemented and validated.
 - `TASK-H4-07: Production Env Template` is implemented and validated.
 - `TASK-H4-08: Predeploy Checklist Script` is implemented and validated.
+- H5 gap closure is implemented and validated:
+  - GitHub Releases source provider added as the first real provider.
+  - Celery Beat now schedules source checks, lifecycle dormancy/resurrection, and notification delivery.
+  - Homepage scaffold replaced with a working dashboard.
+  - REVIEW status updated.
+  - Stale temporary SQLite artifact removed.
 
 ## Goal
 
-Create the real hosted staging deployment using the prepared Render Blueprint, access-control baseline, audit log/export, security headers, readiness endpoint, rate limit, env preflight, and predeploy script.
+Create the real hosted staging deployment using the prepared Render Blueprint, access-control baseline, audit log/export, security headers, readiness endpoint, rate limit, env preflight, predeploy script, real GitHub Releases provider, and scheduled worker loop.
 
 ## Validation
 
 - Push repository to GitHub.
+- Push repository to GitLab.
 - Create Render Blueprint from `render.yaml`.
 - Fill manual secrets and hosted URLs.
 - Create `.env.production` from `.env.production.example`.
@@ -43,3 +50,9 @@ Create the real hosted staging deployment using the prepared Render Blueprint, a
 - Run `scripts\check-env-readiness.ps1` against the production-like env file.
 - Run migrations through `0013_audit_events`.
 - Run `scripts\smoke-staging.ps1` against hosted URLs with `-AdminApiKey`.
+
+## Next Implementation Candidates After Staging
+
+- Add RSS/Hacker News provider pack for AI market and product signals.
+- Build source operations UI for provider health, run history, and match suggestion triage.
+- Add saved filters and sorting to the Intel Files workbench.

@@ -54,7 +54,7 @@ services:
     runtime: python
     plan: starter
     buildCommand: pip install -r backend/requirements.txt
-    startCommand: PYTHONPATH=backend:. celery -A workers.celery_app worker --loglevel=info
+    startCommand: PYTHONPATH=backend:. celery -A workers.celery_app worker --beat --loglevel=info
     envVars:
       - key: APP_ENV
         value: production

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.api.v1.dependencies import require_workspace_access
 from app.db.session import get_db
 from app.modules.match_suggestions.service import generate_match_suggestions_for_run
+from app.modules.source_checks.providers import ProviderBackedSourceChecker, get_default_provider_registry
 from app.modules.source_checks.service import run_source_checks
 from app.modules.usage.service import UsageLimitError
 from app.schemas.api import ApiError, ApiResponse
@@ -26,7 +27,8 @@ def run_source_checks_route(
 ) -> ApiResponse[SourceCheckRunData] | JSONResponse:
     try:
         require_workspace_access(db, x_workspace_id, x_user_email, x_user_token)
-        data = run_source_checks(db, payload, workspace_id=x_workspace_id)
+        checker = ProviderBackedSourceChecker(get_default_provider_registry())
+        data = run_source_checks(db, payload, checker=checker, workspace_id=x_workspace_id)
     except ValueError as exc:
         return JSONResponse(
             status_code=404,

@@ -1,6 +1,8 @@
 from collections.abc import Sequence
 from uuid import UUID
+from uuid import uuid4
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -9,7 +11,11 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.main import app
 from app.models import SourceCheckResult, SourceCheckRun, TrackingQuery
-from app.modules.source_checks.providers import ProviderBackedSourceChecker, SourceProviderRegistry
+from app.modules.source_checks.providers import (
+    GitHubReleasesProvider,
+    ProviderBackedSourceChecker,
+    SourceProviderRegistry,
+)
 from app.modules.source_checks.service import CheckerResult, run_source_checks
 from app.schemas.source_checks import SourceCheckRunRequest
 
@@ -192,3 +198,84 @@ def test_provider_backed_checker_failures_are_recorded(
     assert data.run.status in {"failed", "partial"}
     assert data.run.error is not None
     assert "provider exploded" in data.run.error
+
+
+def test_github_releases_provider_returns_recent_releases_for_repo_query() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/repos/huggingface/transformers/releases"
+        return httpx.Response(
+            200,
+            json=[
+                {
+                    "name": "v5.0.0",
+                    "tag_name": "v5.0.0",
+                    "html_url": "https://github.com/huggingface/transformers/releases/tag/v5.0.0",
+                    "body": "Major release notes",
+                    "published_at": "2026-05-24T00:00:00Z",
+                }
+            ],
+        )
+
+    client = httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(handler),
+    )
+    provider = GitHubReleasesProvider(client=client, max_releases_per_repo=1)
+    query = TrackingQuery(
+        intel_file_id=uuid4(),
+        query="Watch huggingface/transformers releases",
+        normalized_query="watch huggingface/transformers releases",
+        source_hint="github",
+    )
+
+    results = provider.search(query)
+
+    assert len(results) == 1
+    assert results[0].title == "huggingface/transformers: v5.0.0"
+    assert results[0].source_name == "github-releases"
+    assert results[0].raw == {
+        "provider": "github_releases",
+        "repo": "huggingface/transformers",
+        "tag_name": "v5.0.0",
+        "published_at": "2026-05-24T00:00:00Z",
+    }
+
+
+def test_github_releases_provider_searches_repositories_when_no_repo_slug() -> None:
+    seen_paths: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_paths.append(request.url.path)
+        if request.url.path == "/search/repositories":
+            return httpx.Response(200, json={"items": [{"full_name": "openai/openai-python"}]})
+        if request.url.path == "/repos/openai/openai-python/releases":
+            return httpx.Response(
+                200,
+                json=[
+                    {
+                        "name": None,
+                        "tag_name": "v2.0.0",
+                        "html_url": "https://github.com/openai/openai-python/releases/tag/v2.0.0",
+                        "body": None,
+                        "published_at": "2026-05-24T01:00:00Z",
+                    }
+                ],
+            )
+        return httpx.Response(404)
+
+    client = httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(handler),
+    )
+    provider = GitHubReleasesProvider(client=client, max_repositories=1, max_releases_per_repo=1)
+    query = TrackingQuery(
+        intel_file_id=uuid4(),
+        query="OpenAI python SDK release",
+        normalized_query="openai python sdk release",
+        source_hint="github",
+    )
+
+    results = provider.search(query)
+
+    assert seen_paths == ["/search/repositories", "/repos/openai/openai-python/releases"]
+    assert [item.title for item in results] == ["openai/openai-python: v2.0.0"]

@@ -5,38 +5,72 @@ Review findings, risks, and approval notes for Signal Tracker.
 ## Current Review Status
 
 P0 planning review completed on 2026-05-23.
-P1-01 repo scaffold implemented on 2026-05-23 — pending P1A review.
+P1-P4 and H1-H4 implementation completed and re-reviewed on 2026-05-24.
+H5 hardening gap closure completed on 2026-05-24.
 
 ## Verdict
 
-`APPROVE_WITH_FOLLOWUPS`
+`APPROVE_FOR_HOSTED_STAGING`
 
-Implementation may begin with `TASK-P1-01: Repo Implementation Scaffold`.
+The repository is ready for hosted staging deployment, with known follow-ups for richer commercial UI depth and real-world source pack expansion.
+
+## 2026-05-24 H5 Hardening Gap Closure Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Backend regression test baseline.
+- GitHub Releases source provider.
+- Celery Beat schedule for source checks, lifecycle dormancy/resurrection, and notification delivery.
+- Dashboard replacement for the previous scaffold homepage.
+- Environment templates and worker startup commands.
+- Temporary SQLite artifact cleanup.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Backend pytest: 137 passed.
+- Frontend type-check: passed.
+- Frontend production build: passed.
+- Celery app loads beat schedule keys: `source-checks-run-due`, `lifecycle-dormancy-run`, `notification-delivery-run`.
+- Removed stale `backend/tmp_p1_02_rereview.db`.
+
+### Residual Risks
+
+- Hosted Render deployment is still not executed in the real account environment.
+- GitHub Releases is the first real provider; more source packs are still needed for broad AI opportunity tracking.
+- Frontend is now demoable as a dashboard, but deeper commercial workflows still need richer filtering, saved views, and source operations UI.
 
 ## Findings
 
-### P1 — Missing OpenSpec change packages after P1-02
+### Historical P1 — Missing OpenSpec change packages after P1-02
 
 The OpenSpec execution layer currently has change packages for:
 
 - `p1-01-repo-scaffold`
 - `p1-02-core-domain-model`
 
-Later P1 tasks still have strong task cards and specs, so this does not block implementation. Before starting each later task, create the matching `openspec/changes/<change-id>/` folder with `proposal.md`, `design.md`, and `tasks.md`.
+Resolved. Later P1-P4 and H1-H4 task packages were created during execution.
 
-### P2 — Default stack should be confirmed by the implementation AI
+### Historical P2 — Default stack should be confirmed by the implementation AI
 
-The plan recommends FastAPI + Next.js + PostgreSQL + Redis + worker queue. This is clear enough to start, but the first implementation agent should echo the stack choice before creating files.
+Resolved. The implemented stack is FastAPI + Next.js + PostgreSQL + Redis + Celery.
 
-### P2 — Commercial requirements are intentionally not in MVP acceptance
+### Historical P2 — Commercial requirements are intentionally not in MVP acceptance
 
-Commercial PRD is complete enough for direction, but P1 should not implement team workspaces, billing, source packs, or report builder. This is already stated in task cards; reviewers should enforce it.
+Resolved. Commercial capabilities were implemented after MVP slices in P4.
 
 ## Open Questions
 
-- Should the first external notification channel after in-app alerts be email, Feishu, Telegram, Slack, or webhook?
-- Should P1 use Celery specifically, or allow a simpler queue abstraction until P2?
-- Should auth be deferred until Commercial phase or added as a minimal local admin gate after MVP?
+- Which source pack should follow GitHub Releases: RSS/Hacker News, GitHub Issues/Commits, or arXiv?
+- Should hosted staging run with embedded Celery Beat on the worker service, or split Beat into a separate Render worker after traffic increases?
+- Which commercial workflow deserves the next UI pass: source operations, saved views, or team review queues?
 
 ## Review Checklist
 

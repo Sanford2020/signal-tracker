@@ -17,4 +17,21 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="UTC",
     enable_utc=True,
+    beat_schedule={
+        "source-checks-run-due": {
+            "task": "workers.tasks.run_due_source_checks",
+            "schedule": settings.source_check_interval_seconds,
+            "kwargs": {"limit": 50},
+        },
+        "lifecycle-dormancy-run": {
+            "task": "workers.tasks.run_lifecycle_dormancy",
+            "schedule": settings.lifecycle_worker_interval_seconds,
+            "kwargs": {"limit": 100, "reason": "scheduled lifecycle worker"},
+        },
+        "notification-delivery-run": {
+            "task": "workers.tasks.deliver_pending_notifications",
+            "schedule": settings.notification_delivery_interval_seconds,
+            "kwargs": {"limit": 100},
+        },
+    },
 )

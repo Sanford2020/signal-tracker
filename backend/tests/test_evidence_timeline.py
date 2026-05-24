@@ -69,6 +69,7 @@ def test_attach_follow_up_evidence_succeeds(client: TestClient, db_session: Sess
         db_session,
         title="Example AI hiring hardware supply chain lead",
         content="Initial hiring signal.",
+        captured_at=datetime(2026, 5, 22, 12, 0, 0, tzinfo=UTC),
     )
     _analyze(client, first_item.id)
     intel_file_id = _create_intel_file(client, first_item.id)

@@ -39,6 +39,13 @@ class Settings(BaseSettings):
     ai_base_url: str | None = None
 
     lifecycle_dormancy_days: int = 14
+    source_check_interval_seconds: int = 900
+    lifecycle_worker_interval_seconds: int = 3600
+    notification_delivery_interval_seconds: int = 300
+    github_api_token: str | None = None
+    github_provider_max_repositories: int = 3
+    github_provider_max_releases_per_repo: int = 2
+    github_provider_timeout_seconds: float = 10.0
 
     alert_opportunity_threshold: float = 7.0
     alert_credibility_increase_min: float = 2.0
