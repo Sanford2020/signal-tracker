@@ -106,3 +106,14 @@ def run_source_checks(
         .order_by(SourceCheckResult.checked_at.asc(), SourceCheckResult.id.asc())
     ).all()
     return SourceCheckRunData(run=run, results=list(results))
+
+
+def list_source_check_runs(db: Session, *, limit: int = 10) -> list[SourceCheckRun]:
+    capped_limit = min(max(limit, 1), 50)
+    return list(
+        db.scalars(
+            select(SourceCheckRun)
+            .order_by(SourceCheckRun.started_at.desc(), SourceCheckRun.id.desc())
+            .limit(capped_limit)
+        ).all()
+    )

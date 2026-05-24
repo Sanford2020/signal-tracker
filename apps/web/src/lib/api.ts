@@ -32,6 +32,7 @@ import type {
   StatusOverrideData,
   StatusOverrideRequest,
 } from "@/types/intel-files";
+import type { SourceCheckRunData, SourceCheckRunListData } from "@/types/source-checks";
 
 import { extractErrorMessage } from "@/lib/inbox-validation";
 
@@ -230,4 +231,16 @@ export async function fetchWorkspaceAuditCsv(workspaceId: string) {
     throw new Error(`Audit export failed: ${response.status}`);
   }
   return response.blob();
+}
+
+export async function fetchSourceCheckRuns(limit = 10) {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return request<SourceCheckRunListData>(`/api/v1/source-checks/runs?${params.toString()}`);
+}
+
+export async function runSourceChecks(limit = 20) {
+  return request<SourceCheckRunData>("/api/v1/source-checks/run", {
+    method: "POST",
+    body: JSON.stringify({ limit }),
+  });
 }

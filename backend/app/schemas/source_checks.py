@@ -39,3 +39,8 @@ class SourceCheckRunRead(BaseModel):
 class SourceCheckRunData(BaseModel):
     run: SourceCheckRunRead
     results: list[SourceCheckResultRead]
+
+
+class SourceCheckRunListData(BaseModel):
+    items: list[SourceCheckRunRead]
+    total: int

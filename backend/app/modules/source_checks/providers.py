@@ -1,4 +1,5 @@
 import re
+import xml.etree.ElementTree as ET
 from collections.abc import Mapping, Sequence
 from typing import Protocol
 
@@ -149,6 +150,94 @@ class GitHubReleasesProvider:
         return results
 
 
+class RssFeedProvider:
+    """Search configured RSS/Atom feeds for query-relevant entries."""
+
+    token_pattern = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{2,}")
+
+    def __init__(
+        self,
+        feed_urls: Sequence[str],
+        *,
+        client: httpx.Client | None = None,
+        max_entries_per_feed: int = 20,
+        timeout_seconds: float = 10.0,
+    ) -> None:
+        self.feed_urls = list(feed_urls)
+        self.client = client
+        self.max_entries_per_feed = max(1, max_entries_per_feed)
+        self.timeout_seconds = timeout_seconds
+
+    def search(self, query: TrackingQuery) -> Sequence[CheckerResult]:
+        if not self.feed_urls:
+            return []
+
+        tokens = self._tokens(query.query)
+        results: list[CheckerResult] = []
+        for feed_url in self.feed_urls:
+            response = self._request(feed_url)
+            response.raise_for_status()
+            results.extend(self._results_from_xml(feed_url, response.text, tokens))
+        return results
+
+    def _request(self, feed_url: str) -> httpx.Response:
+        headers = {"User-Agent": "signal-tracker-rss-provider"}
+        if self.client is not None:
+            return self.client.get(feed_url, headers=headers)
+        with httpx.Client(timeout=self.timeout_seconds, follow_redirects=True) as client:
+            return client.get(feed_url, headers=headers)
+
+    def _tokens(self, query: str) -> set[str]:
+        return {match.group(0).lower() for match in self.token_pattern.finditer(query)}
+
+    def _results_from_xml(self, feed_url: str, xml_text: str, tokens: set[str]) -> list[CheckerResult]:
+        root = ET.fromstring(xml_text)
+        entries = list(root.findall(".//item"))
+        entries.extend(root.findall(".//{http://www.w3.org/2005/Atom}entry"))
+
+        results: list[CheckerResult] = []
+        for entry in entries[: self.max_entries_per_feed]:
+            title = self._text(entry, "title") or "Untitled feed entry"
+            link = self._link(entry)
+            snippet = self._text(entry, "description") or self._text(entry, "summary") or self._text(entry, "content")
+            haystack = f"{title} {snippet or ''}".lower()
+            if tokens and not any(token in haystack for token in tokens):
+                continue
+            results.append(
+                CheckerResult(
+                    title=title,
+                    url=link,
+                    snippet=snippet[:500] if snippet else None,
+                    source_name="rss-feed",
+                    raw={
+                        "provider": "rss_feed",
+                        "feed_url": feed_url,
+                        "published_at": self._text(entry, "pubDate") or self._text(entry, "updated"),
+                    },
+                )
+            )
+        return results
+
+    def _text(self, entry: ET.Element, name: str) -> str | None:
+        candidates = [
+            entry.find(name),
+            entry.find(f"{{http://www.w3.org/2005/Atom}}{name}"),
+            entry.find(f"{{http://purl.org/rss/1.0/}}{name}"),
+        ]
+        for candidate in candidates:
+            if candidate is not None and candidate.text and candidate.text.strip():
+                return candidate.text.strip()
+        return None
+
+    def _link(self, entry: ET.Element) -> str | None:
+        text_link = self._text(entry, "link")
+        if text_link:
+            return text_link
+        atom_link = entry.find("{http://www.w3.org/2005/Atom}link")
+        href = atom_link.attrib.get("href") if atom_link is not None else None
+        return href.strip() if href else None
+
+
 def get_default_provider_registry() -> SourceProviderRegistry:
     settings = get_settings()
     github_provider = GitHubReleasesProvider(
@@ -157,9 +246,17 @@ def get_default_provider_registry() -> SourceProviderRegistry:
         max_releases_per_repo=settings.github_provider_max_releases_per_repo,
         timeout_seconds=settings.github_provider_timeout_seconds,
     )
+    rss_provider = RssFeedProvider(
+        settings.rss_feed_url_list,
+        max_entries_per_feed=settings.rss_provider_max_entries_per_feed,
+        timeout_seconds=settings.rss_provider_timeout_seconds,
+    )
     return SourceProviderRegistry(
         {
             "github": github_provider,
             "github_releases": github_provider,
+            "rss": rss_provider,
+            "news": rss_provider,
+            "search": rss_provider,
         }
     )

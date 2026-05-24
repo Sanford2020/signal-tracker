@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     github_provider_max_repositories: int = 3
     github_provider_max_releases_per_repo: int = 2
     github_provider_timeout_seconds: float = 10.0
+    rss_feed_urls: str = ""
+    rss_provider_max_entries_per_feed: int = 20
+    rss_provider_timeout_seconds: float = 10.0
 
     alert_opportunity_threshold: float = 7.0
     alert_credibility_increase_min: float = 2.0
@@ -69,6 +72,15 @@ class Settings(BaseSettings):
             return json.loads(raw_value)
 
         return [origin.strip() for origin in raw_value.split(",") if origin.strip()]
+
+    @property
+    def rss_feed_url_list(self) -> list[str]:
+        raw_value = self.rss_feed_urls.strip()
+        if not raw_value:
+            return []
+        if raw_value.startswith("["):
+            return [str(item).strip() for item in json.loads(raw_value) if str(item).strip()]
+        return [item.strip() for item in raw_value.split(",") if item.strip()]
 
     @model_validator(mode="after")
     def validate_production_settings(self) -> "Settings":

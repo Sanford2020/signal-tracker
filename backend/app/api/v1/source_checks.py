@@ -8,13 +8,33 @@ from app.api.v1.dependencies import require_workspace_access
 from app.db.session import get_db
 from app.modules.match_suggestions.service import generate_match_suggestions_for_run
 from app.modules.source_checks.providers import ProviderBackedSourceChecker, get_default_provider_registry
-from app.modules.source_checks.service import run_source_checks
+from app.modules.source_checks.service import list_source_check_runs, run_source_checks
 from app.modules.usage.service import UsageLimitError
 from app.schemas.api import ApiError, ApiResponse
 from app.schemas.match_suggestions import MatchSuggestionGenerateData, MatchSuggestionGenerateRequest
-from app.schemas.source_checks import SourceCheckRunData, SourceCheckRunRequest
+from app.schemas.source_checks import SourceCheckRunData, SourceCheckRunListData, SourceCheckRunRequest, SourceCheckRunRead
 
 router = APIRouter(prefix="/source-checks", tags=["source-checks"])
+
+
+@router.get("/runs", response_model=ApiResponse[SourceCheckRunListData])
+def list_source_check_runs_route(
+    limit: int = 10,
+    x_workspace_id: UUID | None = Header(None, alias="X-Workspace-Id"),
+    x_user_email: str | None = Header(None, alias="X-User-Email"),
+    x_user_token: str | None = Header(None, alias="X-User-Token"),
+    db: Session = Depends(get_db),
+) -> ApiResponse[SourceCheckRunListData]:
+    require_workspace_access(db, x_workspace_id, x_user_email, x_user_token)
+    runs = list_source_check_runs(db, limit=limit)
+    return ApiResponse(
+        success=True,
+        data=SourceCheckRunListData(
+            items=[SourceCheckRunRead.model_validate(run) for run in runs],
+            total=len(runs),
+        ),
+        error=None,
+    )
 
 
 @router.post("/run", response_model=ApiResponse[SourceCheckRunData])

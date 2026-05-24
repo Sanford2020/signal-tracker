@@ -14,6 +14,7 @@ from app.models import SourceCheckResult, SourceCheckRun, TrackingQuery
 from app.modules.source_checks.providers import (
     GitHubReleasesProvider,
     ProviderBackedSourceChecker,
+    RssFeedProvider,
     SourceProviderRegistry,
 )
 from app.modules.source_checks.service import CheckerResult, run_source_checks
@@ -87,6 +88,19 @@ def test_api_run_source_checks_consumes_enabled_queries(client: TestClient, db_s
     stored_run = db_session.scalar(select(SourceCheckRun))
     assert stored_run is not None
     assert stored_run.checked_query_count == 2
+
+
+def test_api_lists_recent_source_check_runs(client: TestClient) -> None:
+    _create_tracking_queries(client)
+    run = client.post("/api/v1/source-checks/run", json={"limit": 2})
+    assert run.status_code == 200
+
+    response = client.get("/api/v1/source-checks/runs?limit=5")
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["total"] == 1
+    assert data["items"][0]["checked_query_count"] == 2
 
 
 def test_run_source_checks_persists_results(client: TestClient, db_session: Session) -> None:
@@ -279,3 +293,76 @@ def test_github_releases_provider_searches_repositories_when_no_repo_slug() -> N
 
     assert seen_paths == ["/search/repositories", "/repos/openai/openai-python/releases"]
     assert [item.title for item in results] == ["openai/openai-python: v2.0.0"]
+
+
+def test_rss_feed_provider_returns_query_matching_rss_items() -> None:
+    feed = """<?xml version="1.0" encoding="UTF-8" ?>
+<rss version="2.0">
+  <channel>
+    <title>AI News</title>
+    <item>
+      <title>OpenAI releases agent SDK update</title>
+      <link>https://example.com/openai-sdk</link>
+      <description>Agent workflow improvements shipped today.</description>
+      <pubDate>Sun, 24 May 2026 10:00:00 GMT</pubDate>
+    </item>
+    <item>
+      <title>Unrelated sports update</title>
+      <link>https://example.com/sports</link>
+      <description>No AI signal here.</description>
+    </item>
+  </channel>
+</rss>
+"""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert str(request.url) == "https://feeds.example.com/ai.xml"
+        return httpx.Response(200, text=feed)
+
+    client = httpx.Client(transport=httpx.MockTransport(handler))
+    provider = RssFeedProvider(["https://feeds.example.com/ai.xml"], client=client)
+    query = TrackingQuery(
+        intel_file_id=uuid4(),
+        query="OpenAI agent SDK",
+        normalized_query="openai agent sdk",
+        source_hint="news",
+    )
+
+    results = provider.search(query)
+
+    assert len(results) == 1
+    assert results[0].title == "OpenAI releases agent SDK update"
+    assert results[0].source_name == "rss-feed"
+    assert results[0].url == "https://example.com/openai-sdk"
+    assert results[0].raw == {
+        "provider": "rss_feed",
+        "feed_url": "https://feeds.example.com/ai.xml",
+        "published_at": "Sun, 24 May 2026 10:00:00 GMT",
+    }
+
+
+def test_rss_feed_provider_supports_atom_links() -> None:
+    feed = """<?xml version="1.0" encoding="UTF-8" ?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Research</title>
+  <entry>
+    <title>Robotics policy draft published</title>
+    <link href="https://example.com/robotics-policy" />
+    <summary>New robotics regulation draft.</summary>
+    <updated>2026-05-24T10:00:00Z</updated>
+  </entry>
+</feed>
+"""
+
+    client = httpx.Client(transport=httpx.MockTransport(lambda _: httpx.Response(200, text=feed)))
+    provider = RssFeedProvider(["https://feeds.example.com/research.atom"], client=client)
+    query = TrackingQuery(
+        intel_file_id=uuid4(),
+        query="robotics regulation",
+        normalized_query="robotics regulation",
+        source_hint="news",
+    )
+
+    results = provider.search(query)
+
+    assert [item.url for item in results] == ["https://example.com/robotics-policy"]
