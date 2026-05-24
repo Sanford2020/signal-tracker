@@ -1,0 +1,110 @@
+services:
+  - type: web
+    name: signal-tracker-api
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_NAME
+        value: Signal Tracker API
+      - key: APP_VERSION
+        value: 0.1.0
+      - key: API_V1_PREFIX
+        value: /api/v1
+      - key: LOG_LEVEL
+        value: INFO
+      - key: ADMIN_API_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: signal-tracker-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: signal-tracker-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: keyvalue
+          name: signal-tracker-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: keyvalue
+          name: signal-tracker-redis
+          property: connectionString
+      - key: AI_EXTRACTION_MODE
+        value: mock
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_MODEL
+        value: mock
+      - key: AI_BASE_URL
+        sync: false
+
+  - type: worker
+    name: signal-tracker-worker
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: PYTHONPATH=backend:. celery -A workers.celery_app worker --loglevel=info
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_NAME
+        value: Signal Tracker API
+      - key: APP_VERSION
+        value: 0.1.0
+      - key: LOG_LEVEL
+        value: INFO
+      - key: ADMIN_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        fromDatabase:
+          name: signal-tracker-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: signal-tracker-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: keyvalue
+          name: signal-tracker-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: keyvalue
+          name: signal-tracker-redis
+          property: connectionString
+      - key: AI_EXTRACTION_MODE
+        value: mock
+
+  - type: web
+    name: signal-tracker-web
+    runtime: node
+    plan: starter
+    rootDir: apps/web
+    buildCommand: npm install && npm run build
+    startCommand: npm run start -- -p $PORT
+    envVars:
+      - key: NEXT_PUBLIC_API_BASE_URL
+        sync: false
+
+  - type: keyvalue
+    name: signal-tracker-redis
+    plan: starter
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru
+
+databases:
+  - name: signal-tracker-db
+    plan: starter

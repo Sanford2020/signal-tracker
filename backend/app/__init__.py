@@ -1,0 +1,1 @@
+"""Signal Tracker backend application."""
