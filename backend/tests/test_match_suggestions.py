@@ -151,6 +151,14 @@ def test_list_match_suggestions_missing_file_returns_404(client: TestClient) -> 
     assert response.status_code == 404
 
 
+def test_generate_match_suggestions_missing_run_returns_404(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/source-checks/runs/00000000-0000-0000-0000-000000000001/match-suggestions",
+        json={"min_confidence": 0.65},
+    )
+    assert response.status_code == 404
+
+
 def test_accept_match_suggestion_creates_raw_item_and_evidence(
     client: TestClient,
     db_session: Session,

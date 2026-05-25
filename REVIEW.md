@@ -9,12 +9,39 @@ P1-P4 and H1-H4 implementation completed and re-reviewed on 2026-05-24.
 H5 hardening gap closure completed on 2026-05-24.
 H6 workspace isolation hardening completed on 2026-05-24.
 H7 Hacker News source pack completed on 2026-05-24.
+H8 source operations suggestion triage completed on 2026-05-25.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
 The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub/RSS/Hacker News source providers, and known follow-ups for richer commercial UI depth.
+
+## 2026-05-25 H8 Source Operations Suggestion Triage Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Added frontend API client for source-check match suggestion generation.
+- Sources page can generate suggestions from run history and automatically after a fresh run.
+- Sources page displays generated suggestions with confidence, source, status, and Intel File navigation.
+- Invalid source-check run suggestion generation now returns API 404 instead of surfacing as an unhandled server error.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Focused match suggestion tests: passed.
+- Frontend type-check and build: passed.
+
+### Residual Risks
+
+- Suggested evidence acceptance still happens from the Intel File detail page; a future workflow can add inline accept/dismiss actions on the Sources page.
 
 ## 2026-05-24 H7 Hacker News Source Pack Review
 

@@ -28,6 +28,7 @@ import type {
   IntelFileDetailData,
   IntelFileListData,
   MatchSuggestionAcceptData,
+  MatchSuggestionGenerateData,
   MatchSuggestionListData,
   StatusOverrideData,
   StatusOverrideRequest,
@@ -191,6 +192,13 @@ export async function acceptMatchSuggestion(suggestionId: string, rationale?: st
   return request<MatchSuggestionAcceptData>(`/api/v1/match-suggestions/${suggestionId}/accept`, {
     method: "POST",
     body: JSON.stringify({ rationale: rationale ?? null }),
+  });
+}
+
+export async function generateSourceCheckMatchSuggestions(runId: string, minConfidence = 0.65) {
+  return request<MatchSuggestionGenerateData>(`/api/v1/source-checks/runs/${runId}/match-suggestions`, {
+    method: "POST",
+    body: JSON.stringify({ min_confidence: minConfidence }),
   });
 }
 

@@ -79,6 +79,16 @@ def generate_match_suggestions_route(
     x_user_token: str | None = Header(None, alias="X-User-Token"),
     db: Session = Depends(get_db),
 ) -> ApiResponse[MatchSuggestionGenerateData]:
-    require_workspace_access(db, x_workspace_id, x_user_email, x_user_token)
-    data = generate_match_suggestions_for_run(db, run_id, payload, workspace_id=x_workspace_id)
+    try:
+        require_workspace_access(db, x_workspace_id, x_user_email, x_user_token)
+        data = generate_match_suggestions_for_run(db, run_id, payload, workspace_id=x_workspace_id)
+    except ValueError as exc:
+        return JSONResponse(
+            status_code=404,
+            content=ApiResponse[MatchSuggestionGenerateData](
+                success=False,
+                data=None,
+                error=ApiError(code="not_found", message=str(exc)),
+            ).model_dump(),
+        )
     return ApiResponse(success=True, data=data, error=None)

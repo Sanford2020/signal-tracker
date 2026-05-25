@@ -42,6 +42,10 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
 - H7 Hacker News source pack is implemented and validated:
   - `search`, `hacker_news`, `hn`, and `social` source hints route to HN Search.
   - HN provider uses public no-key search endpoints and stores source metadata for match suggestions.
+- H8 source operations suggestion triage is implemented and validated:
+  - Sources page can generate match suggestions from source-check runs.
+  - Fresh source-check runs automatically attempt suggestion generation.
+  - Suggested evidence links back to the relevant Intel File for acceptance/review.
 
 ## Goal
 
@@ -61,5 +65,4 @@ Create the real hosted staging deployment using the prepared Render Blueprint, a
 
 ## Next Implementation Candidates After Staging
 
-- Build source operations UI for provider health, run history, and match suggestion triage.
 - Add saved filters and sorting to the Intel Files workbench.

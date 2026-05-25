@@ -104,6 +104,11 @@ export type MatchSuggestionListData = {
   total: number;
 };
 
+export type MatchSuggestionGenerateData = {
+  items: MatchSuggestion[];
+  created_count: number;
+};
+
 export type MatchSuggestionAcceptData = {
   item: MatchSuggestion;
   raw_item_id: string;

@@ -1,13 +1,21 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { fetchSourceCheckRuns, runSourceChecks } from "@/lib/api";
+import { fetchSourceCheckRuns, generateSourceCheckMatchSuggestions, runSourceChecks } from "@/lib/api";
+import type { MatchSuggestion } from "@/types/intel-files";
 import type { SourceCheckResult, SourceCheckRun } from "@/types/source-checks";
 
 type PageState =
   | { status: "loading" }
-  | { status: "ready"; runs: SourceCheckRun[]; latestResults: SourceCheckResult[]; message: string | null }
+  | {
+      status: "ready";
+      runs: SourceCheckRun[];
+      latestResults: SourceCheckResult[];
+      latestSuggestions: MatchSuggestion[];
+      message: string | null;
+    }
   | { status: "error"; message: string };
 
 function formatDate(value: string | null) {
@@ -25,6 +33,7 @@ function formatDate(value: string | null) {
 export default function SourcesPage() {
   const [state, setState] = useState<PageState>({ status: "loading" });
   const [isRunning, setIsRunning] = useState(false);
+  const [generatingRunId, setGeneratingRunId] = useState<string | null>(null);
 
   async function loadRuns(message: string | null = null) {
     try {
@@ -33,7 +42,7 @@ export default function SourcesPage() {
         setState({ status: "error", message: response.error?.message ?? "Source check runs failed to load." });
         return;
       }
-      setState({ status: "ready", runs: response.data.items, latestResults: [], message });
+      setState({ status: "ready", runs: response.data.items, latestResults: [], latestSuggestions: [], message });
     } catch (error) {
       setState({
         status: "error",
@@ -54,13 +63,17 @@ export default function SourcesPage() {
         setState({ status: "error", message: response.error?.message ?? "Source check failed." });
         return;
       }
+      const suggestionsResponse = await generateSourceCheckMatchSuggestions(response.data.run.id);
+      const suggestions =
+        suggestionsResponse.success && suggestionsResponse.data ? suggestionsResponse.data.items : [];
       const runsResponse = await fetchSourceCheckRuns(10);
       const runs = runsResponse.success && runsResponse.data ? runsResponse.data.items : [response.data.run];
       setState({
         status: "ready",
         runs,
         latestResults: response.data.results,
-        message: `Run ${response.data.run.status}: checked ${response.data.run.checked_query_count} queries and found ${response.data.run.result_count} results.`,
+        latestSuggestions: suggestions,
+        message: `Run ${response.data.run.status}: checked ${response.data.run.checked_query_count} queries, found ${response.data.run.result_count} results, and created ${suggestions.length} suggestions.`,
       });
     } catch (error) {
       setState({
@@ -69,6 +82,35 @@ export default function SourcesPage() {
       });
     } finally {
       setIsRunning(false);
+    }
+  }
+
+  async function handleGenerateSuggestions(run: SourceCheckRun) {
+    setGeneratingRunId(run.id);
+    try {
+      const response = await generateSourceCheckMatchSuggestions(run.id);
+      if (!response.success || !response.data) {
+        setState({ status: "error", message: response.error?.message ?? "Suggestion generation failed." });
+        return;
+      }
+      const data = response.data;
+      setState((current) => {
+        if (current.status !== "ready") {
+          return current;
+        }
+        return {
+          ...current,
+          latestSuggestions: data.items,
+          message: `Created ${data.created_count} suggestions from ${formatDate(run.started_at)} run.`,
+        };
+      });
+    } catch (error) {
+      setState({
+        status: "error",
+        message: error instanceof Error ? error.message : "Suggestion generation failed.",
+      });
+    } finally {
+      setGeneratingRunId(null);
     }
   }
 
@@ -110,7 +152,7 @@ export default function SourcesPage() {
       <div className="grid gap-3 md:grid-cols-3">
         <Metric label="Recent runs" value={String(state.runs.length)} />
         <Metric label="Last checked queries" value={String(state.runs[0]?.checked_query_count ?? 0)} />
-        <Metric label="Last result count" value={String(state.runs[0]?.result_count ?? 0)} />
+        <Metric label="Latest suggestions" value={String(state.latestSuggestions.length)} />
       </div>
 
       {state.message ? (
@@ -131,6 +173,7 @@ export default function SourcesPage() {
                   <th className="px-4 py-3">Queries</th>
                   <th className="px-4 py-3">Results</th>
                   <th className="px-4 py-3">Error</th>
+                  <th className="px-4 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
@@ -141,11 +184,21 @@ export default function SourcesPage() {
                     <td className="px-4 py-3 text-slate-300">{run.checked_query_count}</td>
                     <td className="px-4 py-3 text-slate-300">{run.result_count}</td>
                     <td className="max-w-xs truncate px-4 py-3 text-slate-500">{run.error ?? "-"}</td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => void handleGenerateSuggestions(run)}
+                        disabled={generatingRunId === run.id || run.result_count === 0}
+                        className="text-xs font-medium text-cyan-300 disabled:cursor-not-allowed disabled:text-slate-600"
+                      >
+                        {generatingRunId === run.id ? "Generating..." : "Suggest"}
+                      </button>
+                    </td>
                   </tr>
                 ))}
                 {state.runs.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-8 text-center text-slate-500" colSpan={5}>
+                    <td className="px-4 py-8 text-center text-slate-500" colSpan={6}>
                       No source check runs yet.
                     </td>
                   </tr>
@@ -180,6 +233,36 @@ export default function SourcesPage() {
           </div>
         </aside>
       </div>
+
+      <section>
+        <h2 className="mb-3 text-lg font-semibold">Suggested Evidence</h2>
+        <div className="grid gap-3 lg:grid-cols-2">
+          {state.latestSuggestions.length > 0 ? (
+            state.latestSuggestions.map((suggestion) => (
+              <Link
+                key={suggestion.id}
+                href={`/intel-files/${suggestion.intel_file_id}`}
+                className="rounded border border-slate-800 bg-slate-900/40 p-4 hover:bg-slate-900"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-slate-100">{suggestion.result_title}</p>
+                    <p className="mt-1 text-xs text-cyan-300">{suggestion.source_name ?? "source"} · {(suggestion.confidence * 100).toFixed(0)}%</p>
+                  </div>
+                  <span className="shrink-0 rounded border border-slate-700 px-2 py-1 text-xs text-slate-400">
+                    {suggestion.status}
+                  </span>
+                </div>
+                <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">{suggestion.rationale}</p>
+              </Link>
+            ))
+          ) : (
+            <div className="rounded border border-slate-800 bg-slate-900/40 p-4 text-sm text-slate-500">
+              Generate suggestions from a run with results to create candidate follow-up evidence.
+            </div>
+          )}
+        </div>
+      </section>
     </section>
   );
 }
