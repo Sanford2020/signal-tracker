@@ -46,6 +46,9 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
   - Sources page can generate match suggestions from source-check runs.
   - Fresh source-check runs automatically attempt suggestion generation.
   - Suggested evidence links back to the relevant Intel File for acceptance/review.
+- H9 Intel Files saved views is implemented and validated:
+  - Analysts can save, apply, and delete local Intel File filter/sort/page-size views.
+  - Saved views persist in browser localStorage for recurring triage workflows.
 
 ## Goal
 
@@ -65,4 +68,5 @@ Create the real hosted staging deployment using the prepared Render Blueprint, a
 
 ## Next Implementation Candidates After Staging
 
-- Add saved filters and sorting to the Intel Files workbench.
+- Add inline accept/dismiss actions to Sources suggested evidence.
+- Add GitHub Issues/Commits or arXiv provider pack.

@@ -10,12 +10,37 @@ H5 hardening gap closure completed on 2026-05-24.
 H6 workspace isolation hardening completed on 2026-05-24.
 H7 Hacker News source pack completed on 2026-05-24.
 H8 source operations suggestion triage completed on 2026-05-25.
+H9 Intel Files saved views completed on 2026-05-25.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
 The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub/RSS/Hacker News source providers, and known follow-ups for richer commercial UI depth.
+
+## 2026-05-25 H9 Intel Files Saved Views Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Added browser-local saved views to the Intel Files workbench.
+- Saved views capture query, lifecycle status, sort, order, and page size.
+- Analysts can apply and delete saved views without a backend migration.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Frontend type-check and build: passed.
+
+### Residual Risks
+
+- Saved views are browser-local. Team-shared saved views should become a workspace-backed feature later.
 
 ## 2026-05-25 H8 Source Operations Suggestion Triage Review
 

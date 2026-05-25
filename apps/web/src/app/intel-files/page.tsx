@@ -31,6 +31,22 @@ const sortOptions = [
   { value: "evidence_count", label: "Evidence" },
 ];
 
+const SAVED_VIEW_KEY = "signal-tracker:intel-file-saved-views";
+
+type SavedViewFilters = {
+  query: string;
+  status: string;
+  sort: string;
+  order: "asc" | "desc";
+  pageSize: number;
+};
+
+type SavedView = SavedViewFilters & {
+  id: string;
+  name: string;
+  createdAt: string;
+};
+
 function formatScore(value: number | null) {
   return value === null ? "-" : value.toFixed(1);
 }
@@ -44,6 +60,46 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function loadSavedViews(): SavedView[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+  const rawValue = window.localStorage.getItem(SAVED_VIEW_KEY);
+  if (!rawValue) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(rawValue);
+    return Array.isArray(parsed) ? parsed.filter(isSavedView) : [];
+  } catch {
+    return [];
+  }
+}
+
+function persistSavedViews(views: SavedView[]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(SAVED_VIEW_KEY, JSON.stringify(views));
+}
+
+function isSavedView(value: unknown): value is SavedView {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const item = value as Partial<SavedView>;
+  return (
+    typeof item.id === "string" &&
+    typeof item.name === "string" &&
+    typeof item.query === "string" &&
+    typeof item.status === "string" &&
+    typeof item.sort === "string" &&
+    (item.order === "asc" || item.order === "desc") &&
+    typeof item.pageSize === "number" &&
+    typeof item.createdAt === "string"
+  );
+}
+
 export default function IntelFilesPage() {
   const [items, setItems] = useState<IntelFileSummary[]>([]);
   const [total, setTotal] = useState(0);
@@ -54,6 +110,10 @@ export default function IntelFilesPage() {
   const [status, setStatus] = useState("");
   const [sort, setSort] = useState("updated_at");
   const [order, setOrder] = useState<"asc" | "desc">("desc");
+  const [savedViews, setSavedViews] = useState<SavedView[]>([]);
+  const [selectedViewId, setSelectedViewId] = useState("");
+  const [viewName, setViewName] = useState("");
+  const [viewMessage, setViewMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,9 +152,14 @@ export default function IntelFilesPage() {
     void loadFiles();
   }, [loadFiles]);
 
+  useEffect(() => {
+    setSavedViews(loadSavedViews());
+  }, []);
+
   function applySearch() {
     setPage(1);
     setAppliedQuery(query.trim());
+    setSelectedViewId("");
   }
 
   function clearFilters() {
@@ -104,6 +169,74 @@ export default function IntelFilesPage() {
     setStatus("");
     setSort("updated_at");
     setOrder("desc");
+    setSelectedViewId("");
+    setViewMessage(null);
+  }
+
+  function currentFilters(): SavedViewFilters {
+    return {
+      query: query.trim(),
+      status,
+      sort,
+      order,
+      pageSize,
+    };
+  }
+
+  function saveView() {
+    const name = viewName.trim();
+    if (!name) {
+      setViewMessage("Name the view before saving.");
+      return;
+    }
+    const filters = currentFilters();
+    const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || crypto.randomUUID();
+    const nextView: SavedView = {
+      id,
+      name,
+      ...filters,
+      createdAt: new Date().toISOString(),
+    };
+    const nextViews = [
+      nextView,
+      ...savedViews.filter((item) => item.id !== id),
+    ].slice(0, 12);
+    setSavedViews(nextViews);
+    persistSavedViews(nextViews);
+    setSelectedViewId(nextView.id);
+    setViewName("");
+    setPage(1);
+    setAppliedQuery(filters.query);
+    setViewMessage(`Saved view: ${name}.`);
+  }
+
+  function applySavedView(viewId: string) {
+    const view = savedViews.find((item) => item.id === viewId);
+    if (!view) {
+      setSelectedViewId("");
+      return;
+    }
+    setSelectedViewId(view.id);
+    setQuery(view.query);
+    setAppliedQuery(view.query);
+    setStatus(view.status);
+    setSort(view.sort);
+    setOrder(view.order);
+    setPageSize(view.pageSize);
+    setPage(1);
+    setViewMessage(`Applied view: ${view.name}.`);
+  }
+
+  function deleteSavedView() {
+    if (!selectedViewId) {
+      return;
+    }
+    const view = savedViews.find((item) => item.id === selectedViewId);
+    const nextViews = savedViews.filter((item) => item.id !== selectedViewId);
+    setSavedViews(nextViews);
+    persistSavedViews(nextViews);
+    setSelectedViewId("");
+    setViewMessage(view ? `Deleted view: ${view.name}.` : "Deleted saved view.");
   }
 
   return (
@@ -166,6 +299,55 @@ export default function IntelFilesPage() {
           Reset
         </button>
       </div>
+
+      <div className="grid gap-3 rounded border border-slate-800 bg-slate-900/40 p-4 lg:grid-cols-[1fr_1.2fr_auto_auto]">
+        <label className="space-y-1">
+          <span className="text-xs uppercase text-slate-500">Saved views</span>
+          <select
+            value={selectedViewId}
+            onChange={(event) => applySavedView(event.target.value)}
+            className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
+          >
+            <option value="">Select view</option>
+            {savedViews.map((view) => (
+              <option key={view.id} value={view.id}>
+                {view.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="space-y-1">
+          <span className="text-xs uppercase text-slate-500">View name</span>
+          <input
+            value={viewName}
+            onChange={(event) => setViewName(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                saveView();
+              }
+            }}
+            className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
+            placeholder="High opportunity watchlist"
+          />
+        </label>
+        <button
+          type="button"
+          onClick={saveView}
+          className="self-end rounded border border-cyan-500 bg-cyan-500 px-3 py-2 text-sm font-medium text-slate-950"
+        >
+          Save View
+        </button>
+        <button
+          type="button"
+          onClick={deleteSavedView}
+          disabled={!selectedViewId}
+          className="self-end rounded border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Delete
+        </button>
+      </div>
+
+      {viewMessage ? <p className="text-sm text-cyan-300">{viewMessage}</p> : null}
 
       <div className="grid gap-3 md:grid-cols-3">
         <Metric label="Matching files" value={String(total)} />
