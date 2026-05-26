@@ -12,6 +12,8 @@ from app.db.session import get_db
 from app.main import app
 from app.models import SourceCheckResult, SourceCheckRun, TrackingQuery
 from app.modules.source_checks.providers import (
+    CompositeSourceProvider,
+    GitHubActivityProvider,
     GitHubReleasesProvider,
     HackerNewsProvider,
     ProviderBackedSourceChecker,
@@ -309,6 +311,154 @@ def test_github_releases_provider_searches_repositories_when_no_repo_slug() -> N
     assert [item.title for item in results] == ["openai/openai-python: v2.0.0"]
 
 
+def test_github_activity_provider_returns_recent_issues_and_commits_for_repo_query() -> None:
+    seen_paths: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_paths.append(request.url.path)
+        if request.url.path == "/repos/openai/openai-python/issues":
+            return httpx.Response(
+                200,
+                json=[
+                    {
+                        "number": 123,
+                        "title": "Add realtime agents support",
+                        "html_url": "https://github.com/openai/openai-python/issues/123",
+                        "body": "Proposal for realtime agent workflows.",
+                        "state": "open",
+                        "updated_at": "2026-05-25T01:00:00Z",
+                    },
+                    {
+                        "number": 124,
+                        "title": "Pull request should be ignored",
+                        "pull_request": {"url": "https://api.github.com/pr/124"},
+                    },
+                ],
+            )
+        if request.url.path == "/repos/openai/openai-python/commits":
+            return httpx.Response(
+                200,
+                json=[
+                    {
+                        "sha": "abc123",
+                        "html_url": "https://github.com/openai/openai-python/commit/abc123",
+                        "commit": {
+                            "message": "Add agents streaming helpers\n\nExtended description.",
+                            "author": {"date": "2026-05-25T02:00:00Z"},
+                        },
+                    }
+                ],
+            )
+        return httpx.Response(404)
+
+    client = httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(handler),
+    )
+    provider = GitHubActivityProvider(client=client, max_items_per_repo=2)
+    query = TrackingQuery(
+        intel_file_id=uuid4(),
+        query="Track openai/openai-python activity",
+        normalized_query="track openai/openai-python activity",
+        source_hint="github",
+    )
+
+    results = provider.search(query)
+
+    assert seen_paths == ["/repos/openai/openai-python/issues", "/repos/openai/openai-python/commits"]
+    assert len(results) == 2
+    assert results[0].title == "openai/openai-python: issue #123 Add realtime agents support"
+    assert results[0].source_name == "github-issues"
+    assert results[0].raw == {
+        "provider": "github_issues",
+        "repo": "openai/openai-python",
+        "number": 123,
+        "state": "open",
+        "updated_at": "2026-05-25T01:00:00Z",
+    }
+    assert results[1].title == "openai/openai-python: commit Add agents streaming helpers"
+    assert results[1].source_name == "github-commits"
+    assert results[1].raw == {
+        "provider": "github_commits",
+        "repo": "openai/openai-python",
+        "sha": "abc123",
+        "committed_at": "2026-05-25T02:00:00Z",
+    }
+
+
+def test_github_activity_provider_searches_repositories_when_no_repo_slug() -> None:
+    seen_paths: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_paths.append(request.url.path)
+        if request.url.path == "/search/repositories":
+            return httpx.Response(200, json={"items": [{"full_name": "langchain-ai/langchain"}]})
+        if request.url.path == "/repos/langchain-ai/langchain/issues":
+            return httpx.Response(200, json=[])
+        if request.url.path == "/repos/langchain-ai/langchain/commits":
+            return httpx.Response(
+                200,
+                json=[
+                    {
+                        "sha": "def456",
+                        "html_url": "https://github.com/langchain-ai/langchain/commit/def456",
+                        "commit": {
+                            "message": "Refresh agent middleware",
+                            "author": {"date": "2026-05-25T03:00:00Z"},
+                        },
+                    }
+                ],
+            )
+        return httpx.Response(404)
+
+    client = httpx.Client(
+        base_url="https://api.github.com",
+        transport=httpx.MockTransport(handler),
+    )
+    provider = GitHubActivityProvider(client=client, max_repositories=1, max_items_per_repo=1)
+    query = TrackingQuery(
+        intel_file_id=uuid4(),
+        query="LangChain agent middleware",
+        normalized_query="langchain agent middleware",
+        source_hint="github_activity",
+    )
+
+    results = provider.search(query)
+
+    assert seen_paths == [
+        "/search/repositories",
+        "/repos/langchain-ai/langchain/issues",
+        "/repos/langchain-ai/langchain/commits",
+    ]
+    assert [item.title for item in results] == ["langchain-ai/langchain: commit Refresh agent middleware"]
+
+
+def test_composite_source_provider_returns_results_from_each_provider() -> None:
+    class StaticProvider:
+        def __init__(self, source_name: str) -> None:
+            self.source_name = source_name
+
+        def search(self, query: TrackingQuery) -> Sequence[CheckerResult]:
+            return [
+                CheckerResult(
+                    title=f"{self.source_name} for {query.query}",
+                    source_name=self.source_name,
+                )
+            ]
+
+    provider = CompositeSourceProvider([StaticProvider("one"), StaticProvider("two")])
+    query = TrackingQuery(
+        intel_file_id=uuid4(),
+        query="open source agent",
+        normalized_query="open source agent",
+        source_hint="github",
+    )
+
+    results = provider.search(query)
+
+    assert [item.source_name for item in results] == ["one", "two"]
+
+
 def test_rss_feed_provider_returns_query_matching_rss_items() -> None:
     feed = """<?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0">
@@ -446,6 +596,11 @@ def test_hacker_news_provider_returns_search_hits() -> None:
 def test_default_provider_registry_routes_search_to_hacker_news() -> None:
     registry = get_default_provider_registry()
 
+    assert isinstance(registry.get("github"), CompositeSourceProvider)
+    assert isinstance(registry.get("github_releases"), GitHubReleasesProvider)
+    assert isinstance(registry.get("github_activity"), GitHubActivityProvider)
+    assert isinstance(registry.get("github_issues"), GitHubActivityProvider)
+    assert isinstance(registry.get("github_commits"), GitHubActivityProvider)
     assert isinstance(registry.get("search"), HackerNewsProvider)
     assert isinstance(registry.get("hacker_news"), HackerNewsProvider)
     assert isinstance(registry.get("hn"), HackerNewsProvider)

@@ -53,6 +53,10 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
   - Sources suggested evidence can be accepted inline, creating raw item and evidence records.
   - Suggestions can be dismissed inline without leaving the source operations page.
   - Match suggestion status updates are available through the v1 API.
+- H11 GitHub activity source pack is implemented and validated:
+  - GitHub source checks now combine releases, recent issues, and recent commits.
+  - `github_activity`, `github_issues`, and `github_commits` source hints are available.
+  - Provider limits are configurable without requiring a GitHub token.
 
 ## Goal
 
@@ -72,5 +76,5 @@ Create the real hosted staging deployment using the prepared Render Blueprint, a
 
 ## Next Implementation Candidates After Staging
 
-- Add GitHub Issues/Commits or arXiv provider pack.
+- Add arXiv provider pack for research/paper signals.
 - Add workspace-backed shared saved views for team triage.

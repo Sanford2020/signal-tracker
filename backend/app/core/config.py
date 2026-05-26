@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     github_api_token: str | None = None
     github_provider_max_repositories: int = 3
     github_provider_max_releases_per_repo: int = 2
+    github_provider_max_activity_items_per_repo: int = 2
     github_provider_timeout_seconds: float = 10.0
     rss_feed_urls: str = ""
     rss_provider_max_entries_per_feed: int = 20

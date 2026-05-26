@@ -12,12 +12,40 @@ H7 Hacker News source pack completed on 2026-05-24.
 H8 source operations suggestion triage completed on 2026-05-25.
 H9 Intel Files saved views completed on 2026-05-25.
 H10 Sources inline suggestion actions completed on 2026-05-26.
+H11 GitHub activity source pack completed on 2026-05-26.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
-The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub/RSS/Hacker News source providers, and known follow-ups for richer commercial UI depth.
+The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub Releases/Issues/Commits, RSS, Hacker News source providers, and known follow-ups for richer commercial UI depth.
+
+## 2026-05-26 H11 GitHub Activity Source Pack Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Added a GitHub activity provider for recent issues and commits.
+- Upgraded the default `github` source hint to combine releases, issues, and commits.
+- Added explicit `github_activity`, `github_issues`, and `github_commits` source hints.
+- Added configurable GitHub activity item limits to environment templates.
+- Added deterministic provider tests using mocked GitHub API responses.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Focused source check tests: passed.
+
+### Residual Risks
+
+- Unauthenticated GitHub API usage is rate-limited; production should set `GITHUB_API_TOKEN` if source-check volume increases.
+- arXiv/research coverage remains a separate provider-pack follow-up.
 
 ## 2026-05-26 H10 Sources Inline Suggestion Actions Review
 
