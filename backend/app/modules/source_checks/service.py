@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.models import IntelFile, SourceCheckResult, SourceCheckRun, TrackingQuery
 from app.modules.usage.service import SOURCE_CHECK, assert_usage_available, record_usage
-from app.schemas.source_checks import SourceCheckRunData, SourceCheckRunRequest
+from app.schemas.source_checks import SourceCheckRunData, SourceCheckRunRequest, SourceProviderHealthRead
 
 
 @dataclass(frozen=True)
@@ -121,4 +121,77 @@ def list_source_check_runs(
         stmt = stmt.where(SourceCheckRun.workspace_id == workspace_id)
     return list(
         db.scalars(stmt).all()
+    )
+
+
+def summarize_source_provider_health(
+    db: Session,
+    *,
+    limit: int = 25,
+    workspace_id: UUID | None = None,
+) -> list[SourceProviderHealthRead]:
+    capped_limit = min(max(limit, 1), 100)
+    query_stmt = select(TrackingQuery).where(TrackingQuery.enabled.is_(True))
+    if workspace_id is not None:
+        query_stmt = query_stmt.join(IntelFile, IntelFile.id == TrackingQuery.intel_file_id).where(
+            IntelFile.workspace_id == workspace_id
+        )
+    queries = db.scalars(query_stmt).all()
+
+    health_by_hint: dict[str, SourceProviderHealthRead] = {}
+    for query in queries:
+        source_hint = query.source_hint or "unknown"
+        current = health_by_hint.get(source_hint)
+        health_by_hint[source_hint] = SourceProviderHealthRead(
+            source_hint=source_hint,
+            enabled_query_count=(current.enabled_query_count if current else 0) + 1,
+            recent_result_count=current.recent_result_count if current else 0,
+            last_result_at=current.last_result_at if current else None,
+            latest_run_status=current.latest_run_status if current else None,
+            latest_run_error=current.latest_run_error if current else None,
+        )
+
+    run_stmt = select(SourceCheckRun).order_by(SourceCheckRun.started_at.desc(), SourceCheckRun.id.desc()).limit(capped_limit)
+    if workspace_id is not None:
+        run_stmt = run_stmt.where(SourceCheckRun.workspace_id == workspace_id)
+    runs = list(db.scalars(run_stmt).all())
+    latest_run = runs[0] if runs else None
+    run_ids = [run.id for run in runs]
+
+    if run_ids:
+        results = db.scalars(
+            select(SourceCheckResult)
+            .where(SourceCheckResult.run_id.in_(run_ids))
+            .order_by(SourceCheckResult.checked_at.desc(), SourceCheckResult.id.desc())
+        ).all()
+        for result in results:
+            source_hint = result.source_hint or result.source_name or "unknown"
+            current = health_by_hint.get(source_hint)
+            health_by_hint[source_hint] = SourceProviderHealthRead(
+                source_hint=source_hint,
+                enabled_query_count=current.enabled_query_count if current else 0,
+                recent_result_count=(current.recent_result_count if current else 0) + 1,
+                last_result_at=max(
+                    [value for value in [current.last_result_at if current else None, result.checked_at] if value is not None]
+                ),
+                latest_run_status=current.latest_run_status if current else None,
+                latest_run_error=current.latest_run_error if current else None,
+            )
+
+    if latest_run is not None:
+        health_by_hint = {
+            key: SourceProviderHealthRead(
+                source_hint=item.source_hint,
+                enabled_query_count=item.enabled_query_count,
+                recent_result_count=item.recent_result_count,
+                last_result_at=item.last_result_at,
+                latest_run_status=latest_run.status,
+                latest_run_error=latest_run.error,
+            )
+            for key, item in health_by_hint.items()
+        }
+
+    return sorted(
+        health_by_hint.values(),
+        key=lambda item: (item.enabled_query_count == 0, -item.recent_result_count, item.source_hint),
     )

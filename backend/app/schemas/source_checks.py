@@ -45,3 +45,17 @@ class SourceCheckRunData(BaseModel):
 class SourceCheckRunListData(BaseModel):
     items: list[SourceCheckRunRead]
     total: int
+
+
+class SourceProviderHealthRead(BaseModel):
+    source_hint: str
+    enabled_query_count: int
+    recent_result_count: int
+    last_result_at: datetime | None
+    latest_run_status: str | None
+    latest_run_error: str | None
+
+
+class SourceProviderHealthData(BaseModel):
+    items: list[SourceProviderHealthRead]
+    total: int

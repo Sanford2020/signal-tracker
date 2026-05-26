@@ -14,12 +14,39 @@ H9 Intel Files saved views completed on 2026-05-25.
 H10 Sources inline suggestion actions completed on 2026-05-26.
 H11 GitHub activity source pack completed on 2026-05-26.
 H12 arXiv research source pack completed on 2026-05-26.
+H13 source provider health visibility completed on 2026-05-26.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
 The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub Releases/Issues/Commits, RSS, Hacker News, and arXiv source providers, plus known follow-ups for richer commercial UI depth.
+
+## 2026-05-26 H13 Source Provider Health Visibility Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Added source provider health summaries by source hint.
+- Added `GET /api/v1/source-checks/provider-health`.
+- Sources page now shows enabled query count, recent result count, last result time, latest run status, and latest run error.
+- Added backend API coverage for provider health summaries.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Focused source check tests: passed.
+- Frontend type-check: passed.
+
+### Residual Risks
+
+- Failed source-check errors are still recorded at run level. Provider-specific failed-query attribution remains a future improvement.
 
 ## 2026-05-26 H12 arXiv Research Source Pack Review
 
@@ -46,7 +73,7 @@ No blocking findings.
 ### Residual Risks
 
 - arXiv API usage should stay conservative; production should monitor provider latency and failures.
-- Source operations still need provider health/error visibility for faster triage.
+- Failed source-check errors still need provider-specific attribution for faster triage.
 
 ## 2026-05-26 H11 GitHub Activity Source Pack Review
 

@@ -5,19 +5,21 @@ import { useEffect, useState } from "react";
 
 import {
   acceptMatchSuggestion,
+  fetchSourceProviderHealth,
   fetchSourceCheckRuns,
   generateSourceCheckMatchSuggestions,
   runSourceChecks,
   updateMatchSuggestionStatus,
 } from "@/lib/api";
 import type { MatchSuggestion } from "@/types/intel-files";
-import type { SourceCheckResult, SourceCheckRun } from "@/types/source-checks";
+import type { SourceCheckResult, SourceCheckRun, SourceProviderHealth } from "@/types/source-checks";
 
 type PageState =
   | { status: "loading" }
   | {
       status: "ready";
       runs: SourceCheckRun[];
+      providerHealth: SourceProviderHealth[];
       latestResults: SourceCheckResult[];
       latestSuggestions: MatchSuggestion[];
       message: string | null;
@@ -44,12 +46,26 @@ export default function SourcesPage() {
 
   async function loadRuns(message: string | null = null) {
     try {
-      const response = await fetchSourceCheckRuns(10);
-      if (!response.success || !response.data) {
-        setState({ status: "error", message: response.error?.message ?? "Source check runs failed to load." });
+      const [runsResponse, healthResponse] = await Promise.all([
+        fetchSourceCheckRuns(10),
+        fetchSourceProviderHealth(25),
+      ]);
+      if (!runsResponse.success || !runsResponse.data) {
+        setState({ status: "error", message: runsResponse.error?.message ?? "Source check runs failed to load." });
         return;
       }
-      setState({ status: "ready", runs: response.data.items, latestResults: [], latestSuggestions: [], message });
+      if (!healthResponse.success || !healthResponse.data) {
+        setState({ status: "error", message: healthResponse.error?.message ?? "Provider health failed to load." });
+        return;
+      }
+      setState({
+        status: "ready",
+        runs: runsResponse.data.items,
+        providerHealth: healthResponse.data.items,
+        latestResults: [],
+        latestSuggestions: [],
+        message,
+      });
     } catch (error) {
       setState({
         status: "error",
@@ -73,11 +89,16 @@ export default function SourcesPage() {
       const suggestionsResponse = await generateSourceCheckMatchSuggestions(response.data.run.id);
       const suggestions =
         suggestionsResponse.success && suggestionsResponse.data ? suggestionsResponse.data.items : [];
-      const runsResponse = await fetchSourceCheckRuns(10);
+      const [runsResponse, healthResponse] = await Promise.all([
+        fetchSourceCheckRuns(10),
+        fetchSourceProviderHealth(25),
+      ]);
       const runs = runsResponse.success && runsResponse.data ? runsResponse.data.items : [response.data.run];
+      const providerHealth = healthResponse.success && healthResponse.data ? healthResponse.data.items : [];
       setState({
         status: "ready",
         runs,
+        providerHealth,
         latestResults: response.data.results,
         latestSuggestions: suggestions,
         message: `Run ${response.data.run.status}: checked ${response.data.run.checked_query_count} queries, found ${response.data.run.result_count} results, and created ${suggestions.length} suggestions.`,
@@ -215,7 +236,7 @@ export default function SourcesPage() {
       <div className="grid gap-3 md:grid-cols-3">
         <Metric label="Recent runs" value={String(state.runs.length)} />
         <Metric label="Last checked queries" value={String(state.runs[0]?.checked_query_count ?? 0)} />
-        <Metric label="Latest suggestions" value={String(state.latestSuggestions.length)} />
+        <Metric label="Provider hints" value={String(state.providerHealth.length)} />
       </div>
 
       {state.message ? (
@@ -296,6 +317,43 @@ export default function SourcesPage() {
           </div>
         </aside>
       </div>
+
+      <section>
+        <h2 className="mb-3 text-lg font-semibold">Provider Health</h2>
+        <div className="overflow-hidden rounded border border-slate-800">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-slate-900 text-xs uppercase text-slate-500">
+              <tr>
+                <th className="px-4 py-3">Hint</th>
+                <th className="px-4 py-3">Enabled queries</th>
+                <th className="px-4 py-3">Recent results</th>
+                <th className="px-4 py-3">Last result</th>
+                <th className="px-4 py-3">Latest run</th>
+                <th className="px-4 py-3">Last error</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {state.providerHealth.map((item) => (
+                <tr key={item.source_hint} className="bg-slate-950/60">
+                  <td className="px-4 py-3 font-medium text-slate-100">{item.source_hint}</td>
+                  <td className="px-4 py-3 text-slate-300">{item.enabled_query_count}</td>
+                  <td className="px-4 py-3 text-slate-300">{item.recent_result_count}</td>
+                  <td className="px-4 py-3 text-slate-300">{formatDate(item.last_result_at)}</td>
+                  <td className="px-4 py-3 text-slate-300">{item.latest_run_status ?? "-"}</td>
+                  <td className="max-w-sm truncate px-4 py-3 text-slate-500">{item.latest_run_error ?? "-"}</td>
+                </tr>
+              ))}
+              {state.providerHealth.length === 0 ? (
+                <tr>
+                  <td className="px-4 py-8 text-center text-slate-500" colSpan={6}>
+                    Generate tracking queries and run source checks to populate provider health.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <section>
         <h2 className="mb-3 text-lg font-semibold">Suggested Evidence</h2>

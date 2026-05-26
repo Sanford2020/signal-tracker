@@ -61,6 +61,9 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
   - `research`, `arxiv`, `paper`, and `papers` source hints route to arXiv Atom API.
   - Research signal tracking queries now use the `research` source hint.
   - arXiv provider limits and timeout are configurable without credentials.
+- H13 source provider health visibility is implemented and validated:
+  - Source provider health API summarizes enabled queries, recent results, last result time, latest run status, and latest run error by source hint.
+  - Sources page shows provider health and last-error visibility for source operations.
 
 ## Goal
 
@@ -81,4 +84,4 @@ Create the real hosted staging deployment using the prepared Render Blueprint, a
 ## Next Implementation Candidates After Staging
 
 - Add workspace-backed shared saved views for team triage.
-- Add source provider health metrics and last-error visibility in Sources.
+- Add provider-specific error attribution for failed source-check queries.

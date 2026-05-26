@@ -31,3 +31,17 @@ export type SourceCheckRunListData = {
   items: SourceCheckRun[];
   total: number;
 };
+
+export type SourceProviderHealth = {
+  source_hint: string;
+  enabled_query_count: number;
+  recent_result_count: number;
+  last_result_at: string | null;
+  latest_run_status: string | null;
+  latest_run_error: string | null;
+};
+
+export type SourceProviderHealthData = {
+  items: SourceProviderHealth[];
+  total: number;
+};

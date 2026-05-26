@@ -120,6 +120,27 @@ def test_api_lists_recent_source_check_runs(client: TestClient, monkeypatch: pyt
     assert data["items"][0]["checked_query_count"] == 2
 
 
+def test_api_summarizes_source_provider_health(client: TestClient, db_session: Session) -> None:
+    _create_tracking_queries(client)
+    query = db_session.scalar(select(TrackingQuery))
+    assert query is not None
+    query.source_hint = "search"
+    db_session.commit()
+    run_source_checks(db_session, SourceCheckRunRequest(limit=2), checker=RecordingChecker())
+
+    response = client.get("/api/v1/source-checks/provider-health?limit=10")
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["total"] >= 1
+    search_item = next(item for item in data["items"] if item["source_hint"] == "search")
+    assert search_item["enabled_query_count"] >= 1
+    assert search_item["recent_result_count"] >= 1
+    assert search_item["last_result_at"] is not None
+    assert search_item["latest_run_status"] == "completed"
+    assert search_item["latest_run_error"] is None
+
+
 def test_run_source_checks_persists_results(client: TestClient, db_session: Session) -> None:
     _create_tracking_queries(client)
     checker = RecordingChecker()

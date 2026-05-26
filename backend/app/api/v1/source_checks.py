@@ -8,11 +8,17 @@ from app.api.v1.dependencies import require_workspace_access
 from app.db.session import get_db
 from app.modules.match_suggestions.service import generate_match_suggestions_for_run
 from app.modules.source_checks.providers import ProviderBackedSourceChecker, get_default_provider_registry
-from app.modules.source_checks.service import list_source_check_runs, run_source_checks
+from app.modules.source_checks.service import list_source_check_runs, run_source_checks, summarize_source_provider_health
 from app.modules.usage.service import UsageLimitError
 from app.schemas.api import ApiError, ApiResponse
 from app.schemas.match_suggestions import MatchSuggestionGenerateData, MatchSuggestionGenerateRequest
-from app.schemas.source_checks import SourceCheckRunData, SourceCheckRunListData, SourceCheckRunRequest, SourceCheckRunRead
+from app.schemas.source_checks import (
+    SourceCheckRunData,
+    SourceCheckRunListData,
+    SourceCheckRunRequest,
+    SourceCheckRunRead,
+    SourceProviderHealthData,
+)
 
 router = APIRouter(prefix="/source-checks", tags=["source-checks"])
 
@@ -33,6 +39,23 @@ def list_source_check_runs_route(
             items=[SourceCheckRunRead.model_validate(run) for run in runs],
             total=len(runs),
         ),
+        error=None,
+    )
+
+
+@router.get("/provider-health", response_model=ApiResponse[SourceProviderHealthData])
+def source_provider_health_route(
+    limit: int = 25,
+    x_workspace_id: UUID | None = Header(None, alias="X-Workspace-Id"),
+    x_user_email: str | None = Header(None, alias="X-User-Email"),
+    x_user_token: str | None = Header(None, alias="X-User-Token"),
+    db: Session = Depends(get_db),
+) -> ApiResponse[SourceProviderHealthData]:
+    require_workspace_access(db, x_workspace_id, x_user_email, x_user_token)
+    items = summarize_source_provider_health(db, limit=limit, workspace_id=x_workspace_id)
+    return ApiResponse(
+        success=True,
+        data=SourceProviderHealthData(items=items, total=len(items)),
         error=None,
     )
 
