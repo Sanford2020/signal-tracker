@@ -116,6 +116,10 @@ export type MatchSuggestionAcceptData = {
   duplicate_raw_item: boolean;
 };
 
+export type MatchSuggestionStatusUpdateData = {
+  item: MatchSuggestion;
+};
+
 export type StatusOverrideRequest = {
   status: string;
   reason: string;

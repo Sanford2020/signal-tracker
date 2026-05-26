@@ -3,7 +3,13 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-import { fetchSourceCheckRuns, generateSourceCheckMatchSuggestions, runSourceChecks } from "@/lib/api";
+import {
+  acceptMatchSuggestion,
+  fetchSourceCheckRuns,
+  generateSourceCheckMatchSuggestions,
+  runSourceChecks,
+  updateMatchSuggestionStatus,
+} from "@/lib/api";
 import type { MatchSuggestion } from "@/types/intel-files";
 import type { SourceCheckResult, SourceCheckRun } from "@/types/source-checks";
 
@@ -34,6 +40,7 @@ export default function SourcesPage() {
   const [state, setState] = useState<PageState>({ status: "loading" });
   const [isRunning, setIsRunning] = useState(false);
   const [generatingRunId, setGeneratingRunId] = useState<string | null>(null);
+  const [actingSuggestionId, setActingSuggestionId] = useState<string | null>(null);
 
   async function loadRuns(message: string | null = null) {
     try {
@@ -111,6 +118,62 @@ export default function SourcesPage() {
       });
     } finally {
       setGeneratingRunId(null);
+    }
+  }
+
+  function replaceSuggestion(updated: MatchSuggestion, message: string) {
+    setState((current) => {
+      if (current.status !== "ready") {
+        return current;
+      }
+      return {
+        ...current,
+        latestSuggestions: current.latestSuggestions.map((item) =>
+          item.id === updated.id ? updated : item,
+        ),
+        message,
+      };
+    });
+  }
+
+  async function handleAcceptSuggestion(suggestion: MatchSuggestion) {
+    setActingSuggestionId(suggestion.id);
+    try {
+      const response = await acceptMatchSuggestion(suggestion.id, suggestion.rationale);
+      if (!response.success || !response.data) {
+        setState({ status: "error", message: response.error?.message ?? "Suggestion accept failed." });
+        return;
+      }
+      replaceSuggestion(
+        response.data.item,
+        `Accepted suggestion and attached evidence to intel file ${suggestion.intel_file_id}.`,
+      );
+    } catch (error) {
+      setState({
+        status: "error",
+        message: error instanceof Error ? error.message : "Suggestion accept failed.",
+      });
+    } finally {
+      setActingSuggestionId(null);
+    }
+  }
+
+  async function handleDismissSuggestion(suggestion: MatchSuggestion) {
+    setActingSuggestionId(suggestion.id);
+    try {
+      const response = await updateMatchSuggestionStatus(suggestion.id, "dismissed");
+      if (!response.success || !response.data) {
+        setState({ status: "error", message: response.error?.message ?? "Suggestion dismiss failed." });
+        return;
+      }
+      replaceSuggestion(response.data.item, `Dismissed suggestion for ${suggestion.result_title}.`);
+    } catch (error) {
+      setState({
+        status: "error",
+        message: error instanceof Error ? error.message : "Suggestion dismiss failed.",
+      });
+    } finally {
+      setActingSuggestionId(null);
     }
   }
 
@@ -239,14 +302,18 @@ export default function SourcesPage() {
         <div className="grid gap-3 lg:grid-cols-2">
           {state.latestSuggestions.length > 0 ? (
             state.latestSuggestions.map((suggestion) => (
-              <Link
+              <div
                 key={suggestion.id}
-                href={`/intel-files/${suggestion.intel_file_id}`}
-                className="rounded border border-slate-800 bg-slate-900/40 p-4 hover:bg-slate-900"
+                className="rounded border border-slate-800 bg-slate-900/40 p-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-100">{suggestion.result_title}</p>
+                    <Link
+                      href={`/intel-files/${suggestion.intel_file_id}`}
+                      className="block truncate text-sm font-medium text-slate-100 hover:text-cyan-200"
+                    >
+                      {suggestion.result_title}
+                    </Link>
                     <p className="mt-1 text-xs text-cyan-300">{suggestion.source_name ?? "source"} · {(suggestion.confidence * 100).toFixed(0)}%</p>
                   </div>
                   <span className="shrink-0 rounded border border-slate-700 px-2 py-1 text-xs text-slate-400">
@@ -254,7 +321,35 @@ export default function SourcesPage() {
                   </span>
                 </div>
                 <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-400">{suggestion.rationale}</p>
-              </Link>
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  {suggestion.result_url ? (
+                    <a
+                      href={suggestion.result_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs font-medium text-slate-400 hover:text-cyan-200"
+                    >
+                      Open source
+                    </a>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => void handleAcceptSuggestion(suggestion)}
+                    disabled={suggestion.status !== "open" || actingSuggestionId === suggestion.id}
+                    className="rounded border border-emerald-500 bg-emerald-500 px-2.5 py-1.5 text-xs font-medium text-slate-950 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {actingSuggestionId === suggestion.id ? "Working..." : "Accept"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleDismissSuggestion(suggestion)}
+                    disabled={suggestion.status !== "open" || actingSuggestionId === suggestion.id}
+                    className="rounded border border-slate-700 px-2.5 py-1.5 text-xs font-medium text-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
             ))
           ) : (
             <div className="rounded border border-slate-800 bg-slate-900/40 p-4 text-sm text-slate-500">

@@ -214,9 +214,44 @@ def test_accept_match_suggestion_is_idempotent(
     assert len(db_session.scalars(select(Evidence)).all()) == 2
 
 
+def test_dismiss_match_suggestion_updates_status(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    _create_tracking_queries(client)
+    run_data = run_source_checks(db_session, SourceCheckRunRequest(limit=1), checker=MatchingChecker())
+    generated = client.post(
+        f"/api/v1/source-checks/runs/{run_data.run.id}/match-suggestions",
+        json={"min_confidence": 0.65},
+    )
+    suggestion_id = generated.json()["data"]["items"][0]["id"]
+
+    response = client.patch(
+        f"/api/v1/match-suggestions/{suggestion_id}",
+        json={"status": "dismissed"},
+    )
+
+    assert response.status_code == 200
+    item = response.json()["data"]["item"]
+    assert item["status"] == "dismissed"
+
+    stored = db_session.get(MatchSuggestion, UUID(suggestion_id))
+    assert stored is not None
+    assert stored.status == "dismissed"
+    assert stored.decided_at is not None
+
+
 def test_accept_missing_match_suggestion_returns_404(client: TestClient) -> None:
     response = client.post(
         "/api/v1/match-suggestions/00000000-0000-0000-0000-000000000001/accept",
         json={},
+    )
+    assert response.status_code == 404
+
+
+def test_update_missing_match_suggestion_returns_404(client: TestClient) -> None:
+    response = client.patch(
+        "/api/v1/match-suggestions/00000000-0000-0000-0000-000000000001",
+        json={"status": "dismissed"},
     )
     assert response.status_code == 404

@@ -30,6 +30,7 @@ import type {
   MatchSuggestionAcceptData,
   MatchSuggestionGenerateData,
   MatchSuggestionListData,
+  MatchSuggestionStatusUpdateData,
   StatusOverrideData,
   StatusOverrideRequest,
 } from "@/types/intel-files";
@@ -192,6 +193,13 @@ export async function acceptMatchSuggestion(suggestionId: string, rationale?: st
   return request<MatchSuggestionAcceptData>(`/api/v1/match-suggestions/${suggestionId}/accept`, {
     method: "POST",
     body: JSON.stringify({ rationale: rationale ?? null }),
+  });
+}
+
+export async function updateMatchSuggestionStatus(suggestionId: string, status: "open" | "dismissed") {
+  return request<MatchSuggestionStatusUpdateData>(`/api/v1/match-suggestions/${suggestionId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
   });
 }
 

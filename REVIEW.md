@@ -11,12 +11,40 @@ H6 workspace isolation hardening completed on 2026-05-24.
 H7 Hacker News source pack completed on 2026-05-24.
 H8 source operations suggestion triage completed on 2026-05-25.
 H9 Intel Files saved views completed on 2026-05-25.
+H10 Sources inline suggestion actions completed on 2026-05-26.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
 The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub/RSS/Hacker News source providers, and known follow-ups for richer commercial UI depth.
+
+## 2026-05-26 H10 Sources Inline Suggestion Actions Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Added v1 API support for match suggestion status updates.
+- Added backend tests for dismissing suggestions and missing suggestion handling.
+- Sources page can accept suggested evidence inline through the existing accept workflow.
+- Sources page can dismiss suggested evidence inline without navigating to an Intel File detail page.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Focused match suggestion tests: passed.
+- Backend pytest: passed.
+- Frontend type-check and build: passed.
+
+### Residual Risks
+
+- Suggestions are still generated from completed source-check runs only; richer provider packs are the next source coverage improvement.
 
 ## 2026-05-25 H9 Intel Files Saved Views Review
 

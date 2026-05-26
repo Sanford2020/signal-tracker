@@ -49,6 +49,10 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
 - H9 Intel Files saved views is implemented and validated:
   - Analysts can save, apply, and delete local Intel File filter/sort/page-size views.
   - Saved views persist in browser localStorage for recurring triage workflows.
+- H10 Sources inline suggestion actions is implemented and validated:
+  - Sources suggested evidence can be accepted inline, creating raw item and evidence records.
+  - Suggestions can be dismissed inline without leaving the source operations page.
+  - Match suggestion status updates are available through the v1 API.
 
 ## Goal
 
@@ -68,5 +72,5 @@ Create the real hosted staging deployment using the prepared Render Blueprint, a
 
 ## Next Implementation Candidates After Staging
 
-- Add inline accept/dismiss actions to Sources suggested evidence.
 - Add GitHub Issues/Commits or arXiv provider pack.
+- Add workspace-backed shared saved views for team triage.
