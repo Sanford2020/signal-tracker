@@ -57,6 +57,10 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
   - GitHub source checks now combine releases, recent issues, and recent commits.
   - `github_activity`, `github_issues`, and `github_commits` source hints are available.
   - Provider limits are configurable without requiring a GitHub token.
+- H12 arXiv research source pack is implemented and validated:
+  - `research`, `arxiv`, `paper`, and `papers` source hints route to arXiv Atom API.
+  - Research signal tracking queries now use the `research` source hint.
+  - arXiv provider limits and timeout are configurable without credentials.
 
 ## Goal
 
@@ -76,5 +80,5 @@ Create the real hosted staging deployment using the prepared Render Blueprint, a
 
 ## Next Implementation Candidates After Staging
 
-- Add arXiv provider pack for research/paper signals.
 - Add workspace-backed shared saved views for team triage.
+- Add source provider health metrics and last-error visibility in Sources.

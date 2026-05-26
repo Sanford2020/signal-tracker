@@ -13,12 +13,40 @@ H8 source operations suggestion triage completed on 2026-05-25.
 H9 Intel Files saved views completed on 2026-05-25.
 H10 Sources inline suggestion actions completed on 2026-05-26.
 H11 GitHub activity source pack completed on 2026-05-26.
+H12 arXiv research source pack completed on 2026-05-26.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
-The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub Releases/Issues/Commits, RSS, Hacker News source providers, and known follow-ups for richer commercial UI depth.
+The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub Releases/Issues/Commits, RSS, Hacker News, and arXiv source providers, plus known follow-ups for richer commercial UI depth.
+
+## 2026-05-26 H12 arXiv Research Source Pack Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Added an arXiv Atom API provider for research/paper signals.
+- Registered `research`, `arxiv`, `paper`, and `papers` source hints.
+- Routed `SignalType.RESEARCH` tracking queries to the `research` source hint.
+- Added configurable arXiv max-result and timeout settings to environment templates.
+- Added deterministic provider and tracking-query tests using mocked Atom responses.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Focused source check and tracking query tests: passed.
+
+### Residual Risks
+
+- arXiv API usage should stay conservative; production should monitor provider latency and failures.
+- Source operations still need provider health/error visibility for faster triage.
 
 ## 2026-05-26 H11 GitHub Activity Source Pack Review
 
@@ -45,7 +73,7 @@ No blocking findings.
 ### Residual Risks
 
 - Unauthenticated GitHub API usage is rate-limited; production should set `GITHUB_API_TOKEN` if source-check volume increases.
-- arXiv/research coverage remains a separate provider-pack follow-up.
+- Broader research coverage beyond arXiv, such as patents or conference feeds, remains a future provider-pack follow-up.
 
 ## 2026-05-26 H10 Sources Inline Suggestion Actions Review
 

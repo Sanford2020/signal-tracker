@@ -319,6 +319,101 @@ class GitHubActivityProvider:
         return results
 
 
+class ArxivProvider:
+    """Search arXiv Atom API for recent research papers matching a tracking query."""
+
+    api_base_url = "https://export.arxiv.org"
+    atom_namespace = {"atom": "http://www.w3.org/2005/Atom"}
+
+    def __init__(
+        self,
+        *,
+        client: httpx.Client | None = None,
+        max_results: int = 10,
+        timeout_seconds: float = 10.0,
+    ) -> None:
+        self.client = client
+        self.max_results = max(1, min(max_results, 50))
+        self.timeout_seconds = timeout_seconds
+
+    def search(self, query: TrackingQuery) -> Sequence[CheckerResult]:
+        response = self._request(
+            "/api/query",
+            params={
+                "search_query": f"all:{query.query}",
+                "sortBy": "submittedDate",
+                "sortOrder": "descending",
+                "max_results": self.max_results,
+            },
+        )
+        response.raise_for_status()
+        return self._results_from_atom(response.text)
+
+    def _request(self, path: str, params: dict[str, str | int]) -> httpx.Response:
+        headers = {"User-Agent": "signal-tracker-arxiv-provider"}
+        if self.client is not None:
+            return self.client.get(path, params=params, headers=headers)
+        with httpx.Client(base_url=self.api_base_url, timeout=self.timeout_seconds) as client:
+            return client.get(path, params=params, headers=headers)
+
+    def _results_from_atom(self, xml_text: str) -> list[CheckerResult]:
+        root = ET.fromstring(xml_text)
+        entries = root.findall("atom:entry", self.atom_namespace)
+        results: list[CheckerResult] = []
+        for entry in entries[: self.max_results]:
+            paper_id = self._text(entry, "id")
+            title = self._text(entry, "title") or "Untitled arXiv paper"
+            summary = self._text(entry, "summary")
+            published_at = self._text(entry, "published")
+            updated_at = self._text(entry, "updated")
+            authors = [
+                name.text.strip()
+                for name in entry.findall("atom:author/atom:name", self.atom_namespace)
+                if name.text and name.text.strip()
+            ]
+            categories = [
+                category.attrib["term"]
+                for category in entry.findall("atom:category", self.atom_namespace)
+                if category.attrib.get("term")
+            ]
+            results.append(
+                CheckerResult(
+                    title=title,
+                    url=self._link(entry) or paper_id,
+                    snippet=summary[:500] if summary else None,
+                    source_name="arxiv",
+                    raw={
+                        "provider": "arxiv",
+                        "arxiv_id": paper_id.rsplit("/", 1)[-1] if paper_id else None,
+                        "published_at": published_at,
+                        "updated_at": updated_at,
+                        "authors": authors,
+                        "categories": categories,
+                    },
+                )
+            )
+        return results
+
+    def _text(self, entry: ET.Element, name: str) -> str | None:
+        element = entry.find(f"atom:{name}", self.atom_namespace)
+        if element is not None and element.text and element.text.strip():
+            return re.sub(r"\s+", " ", element.text.strip())
+        return None
+
+    def _link(self, entry: ET.Element) -> str | None:
+        preferred: str | None = None
+        fallback: str | None = None
+        for link in entry.findall("atom:link", self.atom_namespace):
+            href = link.attrib.get("href")
+            if not href:
+                continue
+            if link.attrib.get("title") == "pdf" or link.attrib.get("type") == "application/pdf":
+                preferred = href.strip()
+            elif fallback is None:
+                fallback = href.strip()
+        return preferred or fallback
+
+
 class RssFeedProvider:
     """Search configured RSS/Atom feeds for query-relevant entries."""
 
@@ -506,6 +601,10 @@ def get_default_provider_registry() -> SourceProviderRegistry:
         max_entries_per_feed=settings.rss_provider_max_entries_per_feed,
         timeout_seconds=settings.rss_provider_timeout_seconds,
     )
+    arxiv_provider = ArxivProvider(
+        max_results=settings.arxiv_provider_max_results,
+        timeout_seconds=settings.arxiv_provider_timeout_seconds,
+    )
     hacker_news_provider = HackerNewsProvider(
         max_hits=settings.hacker_news_provider_max_hits,
         timeout_seconds=settings.hacker_news_provider_timeout_seconds,
@@ -520,6 +619,10 @@ def get_default_provider_registry() -> SourceProviderRegistry:
             "github_commits": github_commits_provider,
             "rss": rss_provider,
             "news": rss_provider,
+            "research": arxiv_provider,
+            "arxiv": arxiv_provider,
+            "paper": arxiv_provider,
+            "papers": arxiv_provider,
             "search": hacker_news_provider,
             "hacker_news": hacker_news_provider,
             "hn": hacker_news_provider,

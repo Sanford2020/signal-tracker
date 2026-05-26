@@ -12,6 +12,7 @@ from app.db.session import get_db
 from app.main import app
 from app.models import SourceCheckResult, SourceCheckRun, TrackingQuery
 from app.modules.source_checks.providers import (
+    ArxivProvider,
     CompositeSourceProvider,
     GitHubActivityProvider,
     GitHubReleasesProvider,
@@ -532,6 +533,67 @@ def test_rss_feed_provider_supports_atom_links() -> None:
     assert [item.url for item in results] == ["https://example.com/robotics-policy"]
 
 
+def test_arxiv_provider_returns_recent_papers() -> None:
+    feed = """<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <entry>
+    <id>http://arxiv.org/abs/2605.12345v1</id>
+    <updated>2026-05-25T10:00:00Z</updated>
+    <published>2026-05-25T09:00:00Z</published>
+    <title>Agentic Memory for Long-Horizon Research Workflows</title>
+    <summary>
+      We introduce a system for tracking weak technical signals over time.
+    </summary>
+    <author><name>Ada Researcher</name></author>
+    <author><name>Ben Builder</name></author>
+    <category term="cs.AI" />
+    <category term="cs.CL" />
+    <link href="http://arxiv.org/abs/2605.12345v1" rel="alternate" type="text/html" />
+    <link title="pdf" href="http://arxiv.org/pdf/2605.12345v1" rel="related" type="application/pdf" />
+  </entry>
+</feed>
+"""
+    seen_params: dict[str, str] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/api/query"
+        seen_params.update(dict(request.url.params))
+        return httpx.Response(200, text=feed)
+
+    client = httpx.Client(
+        base_url="https://export.arxiv.org",
+        transport=httpx.MockTransport(handler),
+    )
+    provider = ArxivProvider(client=client, max_results=5)
+    query = TrackingQuery(
+        intel_file_id=uuid4(),
+        query="agentic memory research workflows",
+        normalized_query="agentic memory research workflows",
+        source_hint="research",
+    )
+
+    results = provider.search(query)
+
+    assert seen_params == {
+        "search_query": "all:agentic memory research workflows",
+        "sortBy": "submittedDate",
+        "sortOrder": "descending",
+        "max_results": "5",
+    }
+    assert len(results) == 1
+    assert results[0].title == "Agentic Memory for Long-Horizon Research Workflows"
+    assert results[0].url == "http://arxiv.org/pdf/2605.12345v1"
+    assert results[0].source_name == "arxiv"
+    assert results[0].raw == {
+        "provider": "arxiv",
+        "arxiv_id": "2605.12345v1",
+        "published_at": "2026-05-25T09:00:00Z",
+        "updated_at": "2026-05-25T10:00:00Z",
+        "authors": ["Ada Researcher", "Ben Builder"],
+        "categories": ["cs.AI", "cs.CL"],
+    }
+
+
 def test_hacker_news_provider_returns_search_hits() -> None:
     seen_params: dict[str, str] = {}
 
@@ -601,6 +663,10 @@ def test_default_provider_registry_routes_search_to_hacker_news() -> None:
     assert isinstance(registry.get("github_activity"), GitHubActivityProvider)
     assert isinstance(registry.get("github_issues"), GitHubActivityProvider)
     assert isinstance(registry.get("github_commits"), GitHubActivityProvider)
+    assert isinstance(registry.get("research"), ArxivProvider)
+    assert isinstance(registry.get("arxiv"), ArxivProvider)
+    assert isinstance(registry.get("paper"), ArxivProvider)
+    assert isinstance(registry.get("papers"), ArxivProvider)
     assert isinstance(registry.get("search"), HackerNewsProvider)
     assert isinstance(registry.get("hacker_news"), HackerNewsProvider)
     assert isinstance(registry.get("hn"), HackerNewsProvider)

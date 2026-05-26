@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.main import app
-from app.models import TrackingQuery
+from app.models import IntelFile, TrackingQuery
+from app.models.enums import SignalType
 
 
 @pytest.fixture
@@ -99,6 +100,23 @@ def test_tracking_queries_include_source_hints(client: TestClient) -> None:
     assert response.status_code == 200
     hints = {item["source_hint"] for item in response.json()["data"]["items"]}
     assert "careers" in hints
+
+
+def test_research_tracking_queries_use_research_source_hint(client: TestClient, db_session: Session) -> None:
+    intel_file_id = _create_analyzed_file(client)
+    intel_file = db_session.get(IntelFile, UUID(intel_file_id))
+    assert intel_file is not None
+    intel_file.primary_signal_type = SignalType.RESEARCH
+    db_session.commit()
+
+    response = client.post(
+        f"/api/v1/intel-files/{intel_file_id}/tracking-queries",
+        json={"regenerate": True},
+    )
+
+    assert response.status_code == 200
+    hints = {item["source_hint"] for item in response.json()["data"]["items"]}
+    assert "research" in hints
 
 
 def test_generate_tracking_queries_missing_file_returns_404(client: TestClient) -> None:
