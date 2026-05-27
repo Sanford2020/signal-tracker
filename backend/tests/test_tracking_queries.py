@@ -119,6 +119,36 @@ def test_research_tracking_queries_use_research_source_hint(client: TestClient, 
     assert "research" in hints
 
 
+@pytest.mark.parametrize(
+    ("signal_type", "expected_hint"),
+    [
+        (SignalType.FUNDING, "funding"),
+        (SignalType.MARKET, "market"),
+        (SignalType.POLICY, "policy"),
+    ],
+)
+def test_news_adjacent_tracking_queries_keep_specific_source_hints(
+    client: TestClient,
+    db_session: Session,
+    signal_type: SignalType,
+    expected_hint: str,
+) -> None:
+    intel_file_id = _create_analyzed_file(client)
+    intel_file = db_session.get(IntelFile, UUID(intel_file_id))
+    assert intel_file is not None
+    intel_file.primary_signal_type = signal_type
+    db_session.commit()
+
+    response = client.post(
+        f"/api/v1/intel-files/{intel_file_id}/tracking-queries",
+        json={"regenerate": True},
+    )
+
+    assert response.status_code == 200
+    hints = {item["source_hint"] for item in response.json()["data"]["items"]}
+    assert expected_hint in hints
+
+
 def test_package_signals_generate_pypi_tracking_hint(client: TestClient, db_session: Session) -> None:
     intel_file_id = _create_analyzed_file(client)
     intel_file = db_session.get(IntelFile, UUID(intel_file_id))

@@ -101,6 +101,9 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
 - H25 news source hint fallback coverage is implemented and validated:
   - `news` now combines configured RSS feeds with no-key Hacker News fallback coverage.
   - `funding`, `market`, and `policy` source hints now have provider paths even before RSS feeds are configured.
+- H26 specific news-adjacent tracking hints are implemented and validated:
+  - Funding, market, and policy intel files now generate `funding`, `market`, and `policy` tracking hints instead of collapsing into generic `news`.
+  - Provider health can now attribute these signal classes separately while still using the H25 fallback provider path.
 
 ## Goal
 

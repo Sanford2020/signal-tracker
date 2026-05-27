@@ -67,8 +67,12 @@ def _source_hint(signal_type: SignalType | None) -> str:
         return "careers"
     if signal_type == SignalType.RESEARCH:
         return "research"
-    if signal_type in {SignalType.FUNDING, SignalType.MARKET, SignalType.POLICY}:
-        return "news"
+    if signal_type == SignalType.FUNDING:
+        return "funding"
+    if signal_type == SignalType.MARKET:
+        return "market"
+    if signal_type == SignalType.POLICY:
+        return "policy"
     return "search"
 
 
