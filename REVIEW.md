@@ -19,12 +19,38 @@ H14 workspace-backed shared saved views completed on 2026-05-27.
 H15 provider-specific error attribution completed on 2026-05-27.
 H16 shared saved view mutation states completed on 2026-05-27.
 H17 provider health failed-query drill-down completed on 2026-05-27.
+H18 provider health filtering completed on 2026-05-27.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
 The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub Releases/Issues/Commits, RSS, Hacker News, and arXiv source providers, plus known follow-ups for richer commercial UI depth.
+
+## 2026-05-27 H18 Provider Health Filtering Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Sources page now filters provider health by all, erroring, active, and active-with-no-results source hints.
+- Provider hint metric now shows visible rows versus total provider rows.
+- Empty state now distinguishes no provider data from a filter with no matches.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Frontend type-check: passed.
+- Frontend production build: passed.
+
+### Residual Risks
+
+- Filtering is client-side over the latest provider-health snapshot. Server-side filtering can be added later if provider volume grows.
 
 ## 2026-05-27 H17 Provider Health Failed-Query Drill-Down Review
 
@@ -50,7 +76,7 @@ No blocking findings.
 
 ### Residual Risks
 
-- Provider health filtering by errored/active hints remains a UI polish follow-up.
+- Provider health filtering is now implemented. Server-side filtering remains optional if provider volume grows.
 
 ## 2026-05-27 H16 Shared Saved View Mutation States Review
 

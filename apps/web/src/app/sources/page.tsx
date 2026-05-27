@@ -26,6 +26,8 @@ type PageState =
     }
   | { status: "error"; message: string };
 
+type ProviderHealthFilter = "all" | "errors" | "active" | "no_results";
+
 function formatDate(value: string | null) {
   if (!value) {
     return "-";
@@ -43,6 +45,7 @@ export default function SourcesPage() {
   const [isRunning, setIsRunning] = useState(false);
   const [generatingRunId, setGeneratingRunId] = useState<string | null>(null);
   const [actingSuggestionId, setActingSuggestionId] = useState<string | null>(null);
+  const [providerHealthFilter, setProviderHealthFilter] = useState<ProviderHealthFilter>("all");
 
   async function loadRuns(message: string | null = null) {
     try {
@@ -213,6 +216,26 @@ export default function SourcesPage() {
     );
   }
 
+  const visibleProviderHealth = state.providerHealth.filter((item) => {
+    if (providerHealthFilter === "errors") {
+      return item.recent_error_count > 0;
+    }
+    if (providerHealthFilter === "active") {
+      return item.enabled_query_count > 0;
+    }
+    if (providerHealthFilter === "no_results") {
+      return item.enabled_query_count > 0 && item.recent_result_count === 0;
+    }
+    return true;
+  });
+
+  const providerHealthFilters: { value: ProviderHealthFilter; label: string }[] = [
+    { value: "all", label: "All" },
+    { value: "errors", label: "Errors" },
+    { value: "active", label: "Active" },
+    { value: "no_results", label: "No results" },
+  ];
+
   return (
     <section className="space-y-7">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -236,7 +259,7 @@ export default function SourcesPage() {
       <div className="grid gap-3 md:grid-cols-3">
         <Metric label="Recent runs" value={String(state.runs.length)} />
         <Metric label="Last checked queries" value={String(state.runs[0]?.checked_query_count ?? 0)} />
-        <Metric label="Provider hints" value={String(state.providerHealth.length)} />
+        <Metric label="Provider hints" value={`${visibleProviderHealth.length} / ${state.providerHealth.length}`} />
       </div>
 
       {state.message ? (
@@ -319,7 +342,25 @@ export default function SourcesPage() {
       </div>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold">Provider Health</h2>
+        <div className="mb-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <h2 className="text-lg font-semibold">Provider Health</h2>
+          <div className="flex flex-wrap gap-2">
+            {providerHealthFilters.map((filter) => (
+              <button
+                key={filter.value}
+                type="button"
+                onClick={() => setProviderHealthFilter(filter.value)}
+                className={
+                  providerHealthFilter === filter.value
+                    ? "rounded border border-cyan-500 bg-cyan-500 px-3 py-1.5 text-xs font-medium text-slate-950"
+                    : "rounded border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 hover:border-slate-500"
+                }
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="overflow-hidden rounded border border-slate-800">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-900 text-xs uppercase text-slate-500">
@@ -334,7 +375,7 @@ export default function SourcesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
-              {state.providerHealth.map((item) => (
+              {visibleProviderHealth.map((item) => (
                 <tr key={item.source_hint} className="bg-slate-950/60">
                   <td className="px-4 py-3 align-top font-medium text-slate-100">{item.source_hint}</td>
                   <td className="px-4 py-3 text-slate-300">{item.enabled_query_count}</td>
@@ -365,10 +406,12 @@ export default function SourcesPage() {
                   </td>
                 </tr>
               ))}
-              {state.providerHealth.length === 0 ? (
+              {visibleProviderHealth.length === 0 ? (
                 <tr>
                   <td className="px-4 py-8 text-center text-slate-500" colSpan={7}>
-                    Generate tracking queries and run source checks to populate provider health.
+                    {state.providerHealth.length === 0
+                      ? "Generate tracking queries and run source checks to populate provider health."
+                      : "No provider health rows match this filter."}
                   </td>
                 </tr>
               ) : null}

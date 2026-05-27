@@ -77,6 +77,9 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
 - H17 provider health failed-query drill-down is implemented and validated:
   - Provider health API now returns recent failed tracking queries per source hint.
   - Sources page exposes failed query/error details through expandable provider health rows.
+- H18 provider health filtering is implemented and validated:
+  - Sources page can filter provider health by all, erroring, active, and active-with-no-results source hints.
+  - Provider hint metrics now show visible versus total provider health rows.
 
 ## Goal
 
@@ -97,4 +100,4 @@ Create the real hosted staging deployment using the prepared Render Blueprint, a
 ## Next Implementation Candidates After Staging
 
 - Add saved view rename/update affordances beyond name-based upsert.
-- Add provider health filtering by errored/active source hints.
+- Add saved-view default/pinned-view support for recurring analyst workflows.
