@@ -26,12 +26,38 @@ H21 saved-view usage metadata completed on 2026-05-27.
 H22 PyPI package source pack completed on 2026-05-27.
 H23 package signal tracking-query routing completed on 2026-05-27.
 H24 hiring source hint coverage completed on 2026-05-27.
+H25 news source hint fallback coverage completed on 2026-05-27.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
 The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub Releases/Issues/Commits, RSS, Hacker News, and arXiv source providers, plus known follow-ups for richer commercial UI depth.
+
+## 2026-05-27 H25 News Source Hint Fallback Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- `news` now routes to a composite provider: configured RSS feeds plus Hacker News fallback.
+- `funding`, `market`, and `policy` source hints now use the same no-key news fallback path.
+- Added registry coverage for the composite news aliases.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Focused source check tests: passed.
+- Backend pytest: passed.
+
+### Residual Risks
+
+- HN fallback is broad and technical-community biased. Production-quality market/policy coverage should use configured RSS feeds or dedicated providers after staging usage clarifies source priorities.
 
 ## 2026-05-27 H24 Hiring Source Hint Coverage Review
 

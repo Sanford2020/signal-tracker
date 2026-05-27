@@ -725,6 +725,7 @@ def get_default_provider_registry() -> SourceProviderRegistry:
         max_packages=settings.pypi_provider_max_packages,
         timeout_seconds=settings.pypi_provider_timeout_seconds,
     )
+    news_provider = CompositeSourceProvider([rss_provider, hacker_news_provider])
     return SourceProviderRegistry(
         {
             "github": CompositeSourceProvider([github_provider, github_activity_provider]),
@@ -733,7 +734,10 @@ def get_default_provider_registry() -> SourceProviderRegistry:
             "github_issues": github_issues_provider,
             "github_commits": github_commits_provider,
             "rss": rss_provider,
-            "news": rss_provider,
+            "news": news_provider,
+            "funding": news_provider,
+            "market": news_provider,
+            "policy": news_provider,
             "research": arxiv_provider,
             "arxiv": arxiv_provider,
             "paper": arxiv_provider,
