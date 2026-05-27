@@ -235,6 +235,7 @@ def summarize_source_provider_health(
                 recent_errors = [
                     SourceProviderHealthErrorRead(
                         tracking_query_id=query.id,
+                        intel_file_id=query.intel_file_id,
                         query=query.query,
                         error=error_text,
                     ),

@@ -167,6 +167,7 @@ def test_provider_health_attributes_errors_to_source_hint(client: TestClient, db
     assert research_item["recent_errors"][0]["query"]
     assert research_item["recent_errors"][0]["error"] == "provider unavailable"
     assert research_item["recent_errors"][0]["tracking_query_id"]
+    assert research_item["recent_errors"][0]["intel_file_id"]
     assert research_item["latest_run_status"] == "failed"
     assert "provider unavailable" in research_item["latest_run_error"]
 

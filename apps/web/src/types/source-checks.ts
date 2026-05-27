@@ -43,6 +43,7 @@ export type SourceProviderHealth = {
   latest_error: string | null;
   recent_errors: {
     tracking_query_id: string;
+    intel_file_id: string;
     query: string;
     error: string;
   }[];

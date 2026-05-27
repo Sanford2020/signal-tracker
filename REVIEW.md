@@ -2752,3 +2752,35 @@ npm run build
 ### Current Next Step
 
 Owner action remains: deploy Render Blueprint and run hosted smoke test. Code-side staging usability can continue where it reduces review friction without external credentials.
+
+---
+
+## TASK-H32 Review — 2026-05-28
+
+### Verdict
+
+`APPROVE`
+
+Provider health failed-query navigation is implemented. Failed provider query entries now include their affected Intel File id, and the Sources page exposes an `Open file` link from each failed-query drill-down so operators can jump straight into the file context.
+
+### Validation
+
+Passed:
+
+```powershell
+pytest backend/tests/test_source_checks.py -q
+# 23 passed
+
+npm run type-check
+# passed
+
+pytest backend/tests -q
+# 176 passed
+
+npm run build
+# passed
+```
+
+### Current Next Step
+
+Owner action remains: deploy Render Blueprint and run hosted smoke test. Continue code-side staging usability improvements only when they are clearly higher ROI than the remaining owner-only deploy action.

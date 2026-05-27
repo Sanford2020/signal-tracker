@@ -121,6 +121,9 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
 - H31 Intel File suggestion dismiss workflow is implemented and validated:
   - Intel File detail now supports dismissing open match suggestions without switching to the Sources page.
   - Dismissed suggestions are removed from the open review list immediately after the API confirms the status update.
+- H32 provider health failed-query navigation is implemented and validated:
+  - Provider health failed-query rows now include `intel_file_id`.
+  - Sources page failed-query drill-downs now link directly to the affected Intel File.
 
 ## Goal
 

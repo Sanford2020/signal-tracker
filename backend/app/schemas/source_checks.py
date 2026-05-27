@@ -49,6 +49,7 @@ class SourceCheckRunListData(BaseModel):
 
 class SourceProviderHealthErrorRead(BaseModel):
     tracking_query_id: UUID
+    intel_file_id: UUID
     query: str
     error: str
 

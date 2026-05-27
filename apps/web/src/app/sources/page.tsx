@@ -402,6 +402,12 @@ export default function SourcesPage() {
                             <div key={error.tracking_query_id} className="rounded border border-slate-800 bg-slate-950 p-2">
                               <div className="truncate text-xs text-slate-300">{error.query}</div>
                               <div className="mt-1 truncate text-xs text-slate-500">{error.error}</div>
+                              <Link
+                                href={`/intel-files/${error.intel_file_id}`}
+                                className="mt-2 inline-block text-xs font-medium text-cyan-300 hover:text-cyan-200"
+                              >
+                                Open file
+                              </Link>
                             </div>
                           ))}
                         </div>
