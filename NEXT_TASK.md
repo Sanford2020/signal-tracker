@@ -135,6 +135,9 @@ Owner action: refresh GitLab remote credentials, deploy Render Blueprint, and ru
 - H33 source-check result navigation is implemented and validated:
   - Source-check result API payloads now expose `intel_file_id` derived from the tracking query.
   - Sources page latest-result cards now have separate `Open file` and `Open source` actions.
+- H34 source suggestion queue cleanup is implemented and validated:
+  - Sources page suggested-evidence cards now show open suggestions only.
+  - Accepted or dismissed suggestions are removed from the active queue after the API confirms the action.
 
 ## Goal
 

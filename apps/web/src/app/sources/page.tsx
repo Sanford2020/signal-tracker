@@ -40,6 +40,10 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
+function openSuggestions(items: MatchSuggestion[]) {
+  return items.filter((item) => item.status === "open");
+}
+
 export default function SourcesPage() {
   const [state, setState] = useState<PageState>({ status: "loading" });
   const [isRunning, setIsRunning] = useState(false);
@@ -91,7 +95,9 @@ export default function SourcesPage() {
       }
       const suggestionsResponse = await generateSourceCheckMatchSuggestions(response.data.run.id);
       const suggestions =
-        suggestionsResponse.success && suggestionsResponse.data ? suggestionsResponse.data.items : [];
+        suggestionsResponse.success && suggestionsResponse.data
+          ? openSuggestions(suggestionsResponse.data.items)
+          : [];
       const [runsResponse, healthResponse] = await Promise.all([
         fetchSourceCheckRuns(10),
         fetchSourceProviderHealth(25),
@@ -131,7 +137,7 @@ export default function SourcesPage() {
         }
         return {
           ...current,
-          latestSuggestions: data.items,
+          latestSuggestions: openSuggestions(data.items),
           message: `Created ${data.created_count} suggestions from ${formatDate(run.started_at)} run.`,
         };
       });
@@ -145,16 +151,18 @@ export default function SourcesPage() {
     }
   }
 
-  function replaceSuggestion(updated: MatchSuggestion, message: string) {
+  function updateSuggestionQueue(updated: MatchSuggestion, message: string) {
     setState((current) => {
       if (current.status !== "ready") {
         return current;
       }
+      const latestSuggestions =
+        updated.status === "open"
+          ? current.latestSuggestions.map((item) => (item.id === updated.id ? updated : item))
+          : current.latestSuggestions.filter((item) => item.id !== updated.id);
       return {
         ...current,
-        latestSuggestions: current.latestSuggestions.map((item) =>
-          item.id === updated.id ? updated : item,
-        ),
+        latestSuggestions,
         message,
       };
     });
@@ -168,7 +176,7 @@ export default function SourcesPage() {
         setState({ status: "error", message: response.error?.message ?? "Suggestion accept failed." });
         return;
       }
-      replaceSuggestion(
+      updateSuggestionQueue(
         response.data.item,
         `Accepted suggestion and attached evidence to intel file ${suggestion.intel_file_id}.`,
       );
@@ -190,7 +198,7 @@ export default function SourcesPage() {
         setState({ status: "error", message: response.error?.message ?? "Suggestion dismiss failed." });
         return;
       }
-      replaceSuggestion(response.data.item, `Dismissed suggestion for ${suggestion.result_title}.`);
+      updateSuggestionQueue(response.data.item, `Dismissed suggestion for ${suggestion.result_title}.`);
     } catch (error) {
       setState({
         status: "error",

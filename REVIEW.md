@@ -2832,3 +2832,32 @@ npm run build
 ### Current Next Step
 
 Owner action remains: refresh GitLab remote credentials, deploy Render Blueprint, and run hosted smoke test. GitHub remains the up-to-date pushed remote until GitLab credentials are repaired.
+
+---
+
+## TASK-H34 Review — 2026-05-28
+
+### Verdict
+
+`APPROVE`
+
+Source suggestion queue cleanup is implemented. The Sources page now keeps suggested evidence focused on open work only: generated suggestions are filtered to open items, and accepted or dismissed suggestions are removed from the active queue after confirmation.
+
+### Validation
+
+Passed:
+
+```powershell
+npm run type-check
+# passed
+
+npm run build
+# passed
+
+pytest backend/tests -q
+# 176 passed
+```
+
+### Current Next Step
+
+Owner action remains: repair GitLab remote access, deploy Render Blueprint, and run hosted smoke test. GitHub remains current while GitLab access is blocked.
