@@ -92,6 +92,9 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
 - H22 PyPI package source pack is implemented and validated:
   - `package`, `pypi`, `python_package`, and `sdk` source hints now check public PyPI package metadata without credentials.
   - PyPI provider settings are documented in development and production env templates.
+- H23 package signal tracking-query routing is implemented and validated:
+  - Intel files mentioning Python package/SDK signals now generate a `pypi` tracking query automatically.
+  - PyPI provider can now be reached by normal tracking-query generation, not only by manually edited source hints.
 
 ## Goal
 

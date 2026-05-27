@@ -10,6 +10,17 @@ from app.models.enums import EvidenceType, SignalType
 from app.schemas.tracking_queries import TrackingQueryGenerateData, TrackingQueryGenerateRequest, TrackingQueryRead
 
 MAX_QUERY_LENGTH = 160
+PACKAGE_SIGNAL_TERMS = {
+    "client",
+    "library",
+    "package",
+    "packages",
+    "pip",
+    "pypi",
+    "python",
+    "sdk",
+    "sdks",
+}
 
 
 @dataclass(frozen=True)
@@ -61,6 +72,20 @@ def _source_hint(signal_type: SignalType | None) -> str:
     return "search"
 
 
+def _has_package_signal(intel_file: IntelFile, analysis: SignalAnalysis | None) -> bool:
+    values = [
+        intel_file.title,
+        intel_file.thesis or "",
+        *(str(item) for item in (intel_file.keywords or [])),
+    ]
+    if analysis is not None:
+        values.extend(str(item) for item in (analysis.suggested_tracking_queries or []))
+        values.extend(str(item) for item in (analysis.keywords or []))
+
+    haystack = normalize_query(" ".join(values))
+    return any(term in haystack.split() for term in PACKAGE_SIGNAL_TERMS)
+
+
 def build_candidate_queries(intel_file: IntelFile, analysis: SignalAnalysis | None) -> list[CandidateQuery]:
     candidates: list[CandidateQuery] = []
     hint = _source_hint(intel_file.primary_signal_type)
@@ -77,6 +102,15 @@ def build_candidate_queries(intel_file: IntelFile, analysis: SignalAnalysis | No
 
     entity_names = _entity_names(intel_file)
     keywords = [str(item) for item in (intel_file.keywords or []) if str(item).strip()]
+
+    if _has_package_signal(intel_file, analysis):
+        candidates.append(
+            CandidateQuery(
+                query=intel_file.title,
+                source_hint="pypi",
+                rationale="Python package or SDK release tracking.",
+            )
+        )
 
     for entity in entity_names[:4]:
         candidates.append(

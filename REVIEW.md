@@ -24,12 +24,38 @@ H19 saved view rename/update affordances completed on 2026-05-27.
 H20 saved-view default workflow completed on 2026-05-27.
 H21 saved-view usage metadata completed on 2026-05-27.
 H22 PyPI package source pack completed on 2026-05-27.
+H23 package signal tracking-query routing completed on 2026-05-27.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
 The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub Releases/Issues/Commits, RSS, Hacker News, and arXiv source providers, plus known follow-ups for richer commercial UI depth.
+
+## 2026-05-27 H23 Package Signal Tracking-Query Routing Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Tracking-query generation now detects Python package/SDK signal terms.
+- Package-like intel files now emit a `pypi` tracking query automatically.
+- Added coverage proving product/package signals route into the PyPI provider path.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Focused tracking-query tests: passed.
+- Backend pytest: passed.
+
+### Residual Risks
+
+- Package detection is intentionally keyword-based. More precise package-name extraction can be added after staging examples accumulate.
 
 ## 2026-05-27 H22 PyPI Package Source Pack Review
 
