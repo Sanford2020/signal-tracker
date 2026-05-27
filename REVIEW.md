@@ -2720,3 +2720,35 @@ npm run build
 ### Current Next Step
 
 Owner action remains: deploy Render Blueprint and run hosted smoke test. Continue code-side iteration only for high-ROI staging usability improvements that do not require external credentials.
+
+---
+
+## TASK-H31 Review — 2026-05-27
+
+### Verdict
+
+`APPROVE`
+
+Intel File suggestion dismiss workflow is implemented. The detail page now supports accepting or dismissing open match suggestions in place, so analysts can clear noisy source-check evidence without leaving the Intel File review context.
+
+### Validation
+
+Passed:
+
+```powershell
+pytest backend/tests/test_match_suggestions.py -q
+# 11 passed
+
+npm run type-check
+# passed
+
+pytest backend/tests -q
+# 176 passed
+
+npm run build
+# passed
+```
+
+### Current Next Step
+
+Owner action remains: deploy Render Blueprint and run hosted smoke test. Code-side staging usability can continue where it reduces review friction without external credentials.

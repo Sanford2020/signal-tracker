@@ -118,6 +118,9 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
   - Tracking queries can be enabled or paused through `PATCH /api/v1/intel-files/{intel_file_id}/tracking-queries/{tracking_query_id}`.
   - Intel File detail now exposes pause/enable actions so noisy queries can be removed from source-check rotation without regeneration.
   - Active and never-checked tracking counts now reflect enabled queries only.
+- H31 Intel File suggestion dismiss workflow is implemented and validated:
+  - Intel File detail now supports dismissing open match suggestions without switching to the Sources page.
+  - Dismissed suggestions are removed from the open review list immediately after the API confirms the status update.
 
 ## Goal
 

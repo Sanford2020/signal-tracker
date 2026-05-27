@@ -15,6 +15,7 @@ import {
   generateTrackingQueries,
   overrideIntelFileStatus,
   updateIntelFileCollaboration,
+  updateMatchSuggestionStatus,
   updateTrackingQueryEnabled,
 } from "@/lib/api";
 import type {
@@ -67,6 +68,7 @@ export default function IntelFileDetailPage() {
   const [updatingTrackingQueryId, setUpdatingTrackingQueryId] = useState<string | null>(null);
   const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
   const [acceptingSuggestionId, setAcceptingSuggestionId] = useState<string | null>(null);
+  const [dismissingSuggestionId, setDismissingSuggestionId] = useState<string | null>(null);
   const [attachError, setAttachError] = useState<string | null>(null);
   const [attaching, setAttaching] = useState(false);
   const [rawItemId, setRawItemId] = useState("");
@@ -185,6 +187,23 @@ export default function IntelFileDetailPage() {
       setSuggestionsError(err instanceof Error ? err.message : "Failed to accept suggestion.");
     } finally {
       setAcceptingSuggestionId(null);
+    }
+  }
+
+  async function handleDismissSuggestion(suggestion: MatchSuggestion) {
+    setDismissingSuggestionId(suggestion.id);
+    setSuggestionsError(null);
+    try {
+      const result = await updateMatchSuggestionStatus(suggestion.id, "dismissed");
+      if (!result.success) {
+        setSuggestionsError(result.error?.message ?? "Failed to dismiss suggestion.");
+        return;
+      }
+      setSuggestions((items) => items.filter((item) => item.id !== suggestion.id));
+    } catch (err) {
+      setSuggestionsError(err instanceof Error ? err.message : "Failed to dismiss suggestion.");
+    } finally {
+      setDismissingSuggestionId(null);
     }
   }
 
@@ -676,14 +695,22 @@ export default function IntelFileDetailPage() {
                     Open source result
                   </a>
                 ) : null}
-                <div className="mt-3">
+                <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    disabled={acceptingSuggestionId === item.id}
+                    disabled={acceptingSuggestionId === item.id || dismissingSuggestionId === item.id}
                     onClick={() => void handleAcceptSuggestion(item)}
                     className="rounded border border-emerald-800 px-3 py-2 text-xs text-emerald-300 hover:bg-emerald-950 disabled:opacity-50"
                   >
                     {acceptingSuggestionId === item.id ? "Accepting..." : "Accept suggestion"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={acceptingSuggestionId === item.id || dismissingSuggestionId === item.id}
+                    onClick={() => void handleDismissSuggestion(item)}
+                    className="rounded border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+                  >
+                    {dismissingSuggestionId === item.id ? "Dismissing..." : "Dismiss"}
                   </button>
                 </div>
               </li>
