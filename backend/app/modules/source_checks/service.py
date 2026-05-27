@@ -53,7 +53,14 @@ def run_source_checks(
         query_stmt = query_stmt.join(IntelFile, IntelFile.id == TrackingQuery.intel_file_id).where(
             IntelFile.workspace_id == workspace_id
         )
-    queries = db.scalars(query_stmt.order_by(TrackingQuery.created_at.asc(), TrackingQuery.id.asc()).limit(payload.limit)).all()
+    queries = db.scalars(
+        query_stmt.order_by(
+            TrackingQuery.last_checked_at.is_not(None).asc(),
+            TrackingQuery.last_checked_at.asc(),
+            TrackingQuery.created_at.asc(),
+            TrackingQuery.id.asc(),
+        ).limit(payload.limit)
+    ).all()
 
     assert_usage_available(
         db,
@@ -85,9 +92,13 @@ def run_source_checks(
             db.add(result)
             result_count += 1
 
+    finished_at = datetime.now(UTC)
+    for query in queries:
+        query.last_checked_at = finished_at
+
     run.checked_query_count = len(queries)
     run.result_count = result_count
-    run.finished_at = datetime.now(UTC)
+    run.finished_at = finished_at
     run.error = "\n".join(errors) if errors else None
     if errors and result_count == 0:
         run.status = "failed"

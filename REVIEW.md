@@ -28,12 +28,40 @@ H23 package signal tracking-query routing completed on 2026-05-27.
 H24 hiring source hint coverage completed on 2026-05-27.
 H25 news source hint fallback coverage completed on 2026-05-27.
 H26 specific news-adjacent tracking hints completed on 2026-05-27.
+H27 source-check query rotation completed on 2026-05-27.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
 The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub Releases/Issues/Commits, RSS, Hacker News, and arXiv source providers, plus known follow-ups for richer commercial UI depth.
+
+## 2026-05-27 H27 Source-Check Query Rotation Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Added `0018_tracking_query_last_checked` migration and `TrackingQuery.last_checked_at`.
+- Source checks now order enabled queries by never-checked first, then oldest checked, then creation order.
+- Source-check attempts update `last_checked_at` for every selected query, including failed provider attempts.
+- Tracking-query responses expose `last_checked_at` for future UI visibility.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Focused source check tests: passed.
+- Backend pytest: passed.
+- SQLite migration smoke through head: passed.
+
+### Residual Risks
+
+- Rotation is still a simple single-worker policy. High-volume production may eventually need per-provider cadence, backoff, and row-level locking.
 
 ## 2026-05-27 H26 Specific News-Adjacent Tracking Hints Review
 

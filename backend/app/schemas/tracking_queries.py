@@ -15,6 +15,7 @@ class TrackingQueryRead(BaseModel):
     enabled: bool
     meta: dict[str, Any] | None
     created_at: datetime
+    last_checked_at: datetime | None
 
     model_config = ConfigDict(from_attributes=True)
 

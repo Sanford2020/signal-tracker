@@ -183,6 +183,8 @@ def test_run_source_checks_persists_results(client: TestClient, db_session: Sess
     persisted = db_session.scalars(select(SourceCheckResult)).all()
     assert len(persisted) == 2
     assert persisted[0].source_name == "example-search"
+    checked_queries = db_session.scalars(select(TrackingQuery).where(TrackingQuery.last_checked_at.is_not(None))).all()
+    assert len(checked_queries) == 2
 
 
 def test_disabled_tracking_queries_are_skipped(client: TestClient, db_session: Session) -> None:
@@ -198,6 +200,26 @@ def test_disabled_tracking_queries_are_skipped(client: TestClient, db_session: S
 
     assert data.run.checked_query_count == len(generated) - 1
     assert query.query not in checker.seen
+
+
+def test_run_source_checks_rotates_to_unchecked_queries(client: TestClient, db_session: Session) -> None:
+    _create_tracking_queries(client)
+    first_checker = RecordingChecker()
+    first = run_source_checks(db_session, SourceCheckRunRequest(limit=1), checker=first_checker)
+    assert first.run.checked_query_count == 1
+
+    second_checker = RecordingChecker()
+    second = run_source_checks(db_session, SourceCheckRunRequest(limit=1), checker=second_checker)
+
+    assert second.run.checked_query_count == 1
+    assert first_checker.seen
+    assert second_checker.seen
+    assert first_checker.seen[0] != second_checker.seen[0]
+    checked = db_session.scalars(
+        select(TrackingQuery).where(TrackingQuery.query.in_([first_checker.seen[0], second_checker.seen[0]]))
+    ).all()
+    assert len(checked) == 2
+    assert all(query.last_checked_at is not None for query in checked)
 
 
 def test_checker_failures_are_recorded(client: TestClient, db_session: Session) -> None:

@@ -104,6 +104,9 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
 - H26 specific news-adjacent tracking hints are implemented and validated:
   - Funding, market, and policy intel files now generate `funding`, `market`, and `policy` tracking hints instead of collapsing into generic `news`.
   - Provider health can now attribute these signal classes separately while still using the H25 fallback provider path.
+- H27 source-check query rotation is implemented and validated:
+  - Tracking queries now record `last_checked_at` through migration `0018_tracking_query_last_checked`.
+  - Source checks prioritize never-checked and oldest-checked queries so later queries are not starved by the oldest created rows.
 
 ## Goal
 
@@ -118,7 +121,7 @@ Create the real hosted staging deployment using the prepared Render Blueprint, a
 - Create `.env.production` from `.env.production.example`.
 - Run `scripts\predeploy-check.ps1`.
 - Run `scripts\check-env-readiness.ps1` against the production-like env file.
-- Run migrations through `0017_saved_view_usage_metadata`.
+- Run migrations through `0018_tracking_query_last_checked`.
 - Run `scripts\smoke-staging.ps1` against hosted URLs with `-AdminApiKey`.
 
 ## Next Implementation Candidates After Staging

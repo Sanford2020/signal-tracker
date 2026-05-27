@@ -28,5 +28,6 @@ class TrackingQuery(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+    last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     intel_file: Mapped["IntelFile"] = relationship(back_populates="tracking_queries")
