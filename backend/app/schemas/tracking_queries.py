@@ -33,3 +33,11 @@ class TrackingQueryGenerateData(BaseModel):
 class TrackingQueryListData(BaseModel):
     items: list[TrackingQueryRead]
     total: int
+
+
+class TrackingQueryUpdateRequest(BaseModel):
+    enabled: bool
+
+
+class TrackingQueryUpdateData(BaseModel):
+    item: TrackingQueryRead

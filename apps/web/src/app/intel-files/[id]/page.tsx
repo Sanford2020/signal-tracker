@@ -15,6 +15,7 @@ import {
   generateTrackingQueries,
   overrideIntelFileStatus,
   updateIntelFileCollaboration,
+  updateTrackingQueryEnabled,
 } from "@/lib/api";
 import type {
   IntelFileComment,
@@ -63,6 +64,7 @@ export default function IntelFileDetailPage() {
   const [trackingQueries, setTrackingQueries] = useState<TrackingQuery[]>([]);
   const [trackingQueryError, setTrackingQueryError] = useState<string | null>(null);
   const [generatingTrackingQueries, setGeneratingTrackingQueries] = useState(false);
+  const [updatingTrackingQueryId, setUpdatingTrackingQueryId] = useState<string | null>(null);
   const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
   const [acceptingSuggestionId, setAcceptingSuggestionId] = useState<string | null>(null);
   const [attachError, setAttachError] = useState<string | null>(null);
@@ -283,6 +285,31 @@ export default function IntelFileDetailPage() {
     }
   }
 
+  async function handleToggleTrackingQuery(item: TrackingQuery) {
+    if (!params.id) {
+      return;
+    }
+    setUpdatingTrackingQueryId(item.id);
+    setTrackingQueryError(null);
+    try {
+      const result = await updateTrackingQueryEnabled(params.id, item.id, !item.enabled);
+      if (!result.success || !result.data) {
+        setTrackingQueryError(result.error?.message ?? "Failed to update tracking query.");
+        return;
+      }
+      const updated = result.data.item;
+      setTrackingQueries((items) =>
+        items.map((existing) => (existing.id === updated.id ? updated : existing)),
+      );
+    } catch (err) {
+      setTrackingQueryError(
+        err instanceof Error ? err.message : "Failed to update tracking query.",
+      );
+    } finally {
+      setUpdatingTrackingQueryId(null);
+    }
+  }
+
   if (loading) {
     return <p className="text-sm text-slate-400">Loading intel file...</p>;
   }
@@ -299,6 +326,10 @@ export default function IntelFileDetailPage() {
   }
 
   const file = detail.intel_file;
+  const enabledTrackingQueries = trackingQueries.filter((item) => item.enabled);
+  const neverCheckedTrackingQueries = enabledTrackingQueries.filter(
+    (item) => item.last_checked_at === null,
+  );
 
   return (
     <section className="space-y-8">
@@ -453,8 +484,9 @@ export default function IntelFileDetailPage() {
           <div>
             <h2 className="text-lg font-medium">Tracking queries</h2>
             <p className="mt-1 text-sm text-slate-400">
-              {trackingQueries.length} active {trackingQueries.length === 1 ? "query" : "queries"} ·{" "}
-              {trackingQueries.filter((item) => item.last_checked_at === null).length} never checked
+              {enabledTrackingQueries.length} active{" "}
+              {enabledTrackingQueries.length === 1 ? "query" : "queries"} ·{" "}
+              {neverCheckedTrackingQueries.length} never checked
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -490,6 +522,7 @@ export default function IntelFileDetailPage() {
                   <th className="px-3 py-2">Source</th>
                   <th className="px-3 py-2">Last checked</th>
                   <th className="px-3 py-2">State</th>
+                  <th className="px-3 py-2">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
@@ -517,6 +550,20 @@ export default function IntelFileDetailPage() {
                       >
                         {item.enabled ? "Enabled" : "Disabled"}
                       </span>
+                    </td>
+                    <td className="px-3 py-3 align-top">
+                      <button
+                        type="button"
+                        disabled={updatingTrackingQueryId === item.id}
+                        onClick={() => void handleToggleTrackingQuery(item)}
+                        className="rounded border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:bg-slate-800 disabled:opacity-50"
+                      >
+                        {updatingTrackingQueryId === item.id
+                          ? "Saving..."
+                          : item.enabled
+                            ? "Pause"
+                            : "Enable"}
+                      </button>
                     </td>
                   </tr>
                 ))}

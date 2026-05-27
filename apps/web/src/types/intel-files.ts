@@ -174,6 +174,10 @@ export type TrackingQueryGenerateData = {
   created_count: number;
 };
 
+export type TrackingQueryUpdateData = {
+  item: TrackingQuery;
+};
+
 export type MatchSuggestionAcceptData = {
   item: MatchSuggestion;
   raw_item_id: string;

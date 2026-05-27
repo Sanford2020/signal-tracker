@@ -114,6 +114,10 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
   - Intel File detail now lists generated tracking queries with source hint, enabled state, rationale, and last checked time.
   - A read-only tracking-query list API is available at `GET /api/v1/intel-files/{intel_file_id}/tracking-queries`.
   - Analysts can generate or regenerate tracking queries from the Intel File detail page.
+- H30 Intel File tracking-query controls are implemented and validated:
+  - Tracking queries can be enabled or paused through `PATCH /api/v1/intel-files/{intel_file_id}/tracking-queries/{tracking_query_id}`.
+  - Intel File detail now exposes pause/enable actions so noisy queries can be removed from source-check rotation without regeneration.
+  - Active and never-checked tracking counts now reflect enabled queries only.
 
 ## Goal
 

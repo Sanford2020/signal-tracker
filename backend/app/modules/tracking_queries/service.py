@@ -12,6 +12,8 @@ from app.schemas.tracking_queries import (
     TrackingQueryGenerateRequest,
     TrackingQueryListData,
     TrackingQueryRead,
+    TrackingQueryUpdateData,
+    TrackingQueryUpdateRequest,
 )
 
 MAX_QUERY_LENGTH = 160
@@ -252,3 +254,28 @@ def list_tracking_queries(
         items=[TrackingQueryRead.model_validate(item) for item in rows],
         total=len(rows),
     )
+
+
+def update_tracking_query(
+    db: Session,
+    intel_file_id: UUID,
+    tracking_query_id: UUID,
+    payload: TrackingQueryUpdateRequest,
+    *,
+    workspace_id: UUID | None = None,
+) -> TrackingQueryUpdateData:
+    tracking_query = db.scalar(
+        select(TrackingQuery)
+        .join(IntelFile, TrackingQuery.intel_file_id == IntelFile.id)
+        .where(TrackingQuery.id == tracking_query_id, TrackingQuery.intel_file_id == intel_file_id)
+    )
+    if tracking_query is None:
+        raise ValueError("Tracking query not found.")
+    intel_file = tracking_query.intel_file
+    if workspace_id is not None and intel_file.workspace_id != workspace_id:
+        raise ValueError("Tracking query not found.")
+
+    tracking_query.enabled = payload.enabled
+    db.commit()
+    db.refresh(tracking_query)
+    return TrackingQueryUpdateData(item=TrackingQueryRead.model_validate(tracking_query))

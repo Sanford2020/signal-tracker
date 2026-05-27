@@ -40,6 +40,7 @@ import type {
   StatusOverrideRequest,
   TrackingQueryGenerateData,
   TrackingQueryListData,
+  TrackingQueryUpdateData,
 } from "@/types/intel-files";
 import type { SourceCheckRunData, SourceCheckRunListData, SourceProviderHealthData } from "@/types/source-checks";
 
@@ -240,6 +241,20 @@ export async function generateTrackingQueries(intelFileId: string, limit = 12, r
     method: "POST",
     body: JSON.stringify({ limit, regenerate }),
   });
+}
+
+export async function updateTrackingQueryEnabled(
+  intelFileId: string,
+  trackingQueryId: string,
+  enabled: boolean,
+) {
+  return request<TrackingQueryUpdateData>(
+    `/api/v1/intel-files/${intelFileId}/tracking-queries/${trackingQueryId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ enabled }),
+    },
+  );
 }
 
 export async function acceptMatchSuggestion(suggestionId: string, rationale?: string) {

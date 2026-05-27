@@ -98,6 +98,34 @@ def test_list_tracking_queries_returns_existing_check_status(
     assert checked_items[0]["last_checked_at"] == "2026-05-27T12:00:00"
 
 
+def test_update_tracking_query_enabled_state(client: TestClient, db_session: Session) -> None:
+    intel_file_id = _create_analyzed_file(client)
+    generated = client.post(f"/api/v1/intel-files/{intel_file_id}/tracking-queries", json={})
+    assert generated.status_code == 200
+    tracking_query_id = generated.json()["data"]["items"][0]["id"]
+
+    response = client.patch(
+        f"/api/v1/intel-files/{intel_file_id}/tracking-queries/{tracking_query_id}",
+        json={"enabled": False},
+    )
+
+    assert response.status_code == 200
+    item = response.json()["data"]["item"]
+    assert item["id"] == tracking_query_id
+    assert item["enabled"] is False
+    stored = db_session.get(TrackingQuery, UUID(tracking_query_id))
+    assert stored is not None
+    assert stored.enabled is False
+
+    response = client.patch(
+        f"/api/v1/intel-files/{intel_file_id}/tracking-queries/{tracking_query_id}",
+        json={"enabled": True},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["data"]["item"]["enabled"] is True
+
+
 def test_regenerate_replaces_queries_without_duplicates(client: TestClient, db_session: Session) -> None:
     intel_file_id = _create_analyzed_file(client)
     client.post(f"/api/v1/intel-files/{intel_file_id}/tracking-queries", json={})
@@ -207,5 +235,14 @@ def test_generate_tracking_queries_missing_file_returns_404(client: TestClient) 
 def test_list_tracking_queries_missing_file_returns_404(client: TestClient) -> None:
     response = client.get(
         "/api/v1/intel-files/00000000-0000-0000-0000-000000000001/tracking-queries",
+    )
+    assert response.status_code == 404
+
+
+def test_update_tracking_query_missing_query_returns_404(client: TestClient) -> None:
+    intel_file_id = _create_analyzed_file(client)
+    response = client.patch(
+        f"/api/v1/intel-files/{intel_file_id}/tracking-queries/00000000-0000-0000-0000-000000000001",
+        json={"enabled": False},
     )
     assert response.status_code == 404

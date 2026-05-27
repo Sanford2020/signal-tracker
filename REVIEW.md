@@ -2688,3 +2688,35 @@ npm run build
 ### Current Next Step
 
 Owner action remains: deploy Render Blueprint and run hosted smoke test. Code-side staging readiness remains green.
+
+---
+
+## TASK-H30 Review — 2026-05-27
+
+### Verdict
+
+`APPROVE`
+
+Intel File tracking-query controls are implemented. Analysts can now pause or enable individual tracking queries from the detail page, backed by a workspace-scoped PATCH endpoint. Source-check rotation already skips disabled queries, so noisy queries can be removed without deleting or regenerating the full set.
+
+### Validation
+
+Passed:
+
+```powershell
+pytest backend/tests/test_tracking_queries.py -q
+# 14 passed
+
+npm run type-check
+# passed
+
+pytest backend/tests -q
+# 176 passed
+
+npm run build
+# passed
+```
+
+### Current Next Step
+
+Owner action remains: deploy Render Blueprint and run hosted smoke test. Continue code-side iteration only for high-ROI staging usability improvements that do not require external credentials.
