@@ -64,6 +64,10 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
 - H13 source provider health visibility is implemented and validated:
   - Source provider health API summarizes enabled queries, recent results, last result time, latest run status, and latest run error by source hint.
   - Sources page shows provider health and last-error visibility for source operations.
+- H14 workspace-backed shared saved views is implemented and validated:
+  - Intel File saved views are persisted by workspace through `0015_intel_file_saved_views`.
+  - Analysts can save, apply, and delete shared Intel File views from the workbench.
+  - Saved views are scoped by workspace and no longer depend on browser localStorage.
 
 ## Goal
 
@@ -78,10 +82,10 @@ Create the real hosted staging deployment using the prepared Render Blueprint, a
 - Create `.env.production` from `.env.production.example`.
 - Run `scripts\predeploy-check.ps1`.
 - Run `scripts\check-env-readiness.ps1` against the production-like env file.
-- Run migrations through `0014_source_check_run_workspace`.
+- Run migrations through `0015_intel_file_saved_views`.
 - Run `scripts\smoke-staging.ps1` against hosted URLs with `-AdminApiKey`.
 
 ## Next Implementation Candidates After Staging
 
-- Add workspace-backed shared saved views for team triage.
 - Add provider-specific error attribution for failed source-check queries.
+- Add UI loading/disabled states for shared saved view mutations.

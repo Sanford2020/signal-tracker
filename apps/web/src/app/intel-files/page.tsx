@@ -3,8 +3,13 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { fetchIntelFiles } from "@/lib/api";
-import type { IntelFileSummary } from "@/types/intel-files";
+import {
+  deleteIntelFileSavedView,
+  fetchIntelFiles,
+  fetchIntelFileSavedViews,
+  saveIntelFileSavedView,
+} from "@/lib/api";
+import type { IntelFileSavedView, IntelFileSavedViewFilters, IntelFileSummary } from "@/types/intel-files";
 
 const statuses = [
   { value: "", label: "All statuses" },
@@ -31,22 +36,6 @@ const sortOptions = [
   { value: "evidence_count", label: "Evidence" },
 ];
 
-const SAVED_VIEW_KEY = "signal-tracker:intel-file-saved-views";
-
-type SavedViewFilters = {
-  query: string;
-  status: string;
-  sort: string;
-  order: "asc" | "desc";
-  pageSize: number;
-};
-
-type SavedView = SavedViewFilters & {
-  id: string;
-  name: string;
-  createdAt: string;
-};
-
 function formatScore(value: number | null) {
   return value === null ? "-" : value.toFixed(1);
 }
@@ -60,46 +49,6 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
-function loadSavedViews(): SavedView[] {
-  if (typeof window === "undefined") {
-    return [];
-  }
-  const rawValue = window.localStorage.getItem(SAVED_VIEW_KEY);
-  if (!rawValue) {
-    return [];
-  }
-  try {
-    const parsed = JSON.parse(rawValue);
-    return Array.isArray(parsed) ? parsed.filter(isSavedView) : [];
-  } catch {
-    return [];
-  }
-}
-
-function persistSavedViews(views: SavedView[]) {
-  if (typeof window === "undefined") {
-    return;
-  }
-  window.localStorage.setItem(SAVED_VIEW_KEY, JSON.stringify(views));
-}
-
-function isSavedView(value: unknown): value is SavedView {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-  const item = value as Partial<SavedView>;
-  return (
-    typeof item.id === "string" &&
-    typeof item.name === "string" &&
-    typeof item.query === "string" &&
-    typeof item.status === "string" &&
-    typeof item.sort === "string" &&
-    (item.order === "asc" || item.order === "desc") &&
-    typeof item.pageSize === "number" &&
-    typeof item.createdAt === "string"
-  );
-}
-
 export default function IntelFilesPage() {
   const [items, setItems] = useState<IntelFileSummary[]>([]);
   const [total, setTotal] = useState(0);
@@ -110,7 +59,7 @@ export default function IntelFilesPage() {
   const [status, setStatus] = useState("");
   const [sort, setSort] = useState("updated_at");
   const [order, setOrder] = useState<"asc" | "desc">("desc");
-  const [savedViews, setSavedViews] = useState<SavedView[]>([]);
+  const [savedViews, setSavedViews] = useState<IntelFileSavedView[]>([]);
   const [selectedViewId, setSelectedViewId] = useState("");
   const [viewName, setViewName] = useState("");
   const [viewMessage, setViewMessage] = useState<string | null>(null);
@@ -153,7 +102,19 @@ export default function IntelFilesPage() {
   }, [loadFiles]);
 
   useEffect(() => {
-    setSavedViews(loadSavedViews());
+    async function loadSavedViews() {
+      try {
+        const result = await fetchIntelFileSavedViews();
+        if (!result.success || !result.data) {
+          setViewMessage(result.error?.message ?? "Failed to load saved views.");
+          return;
+        }
+        setSavedViews(result.data.items);
+      } catch (err) {
+        setViewMessage(err instanceof Error ? err.message : "Failed to load saved views.");
+      }
+    }
+    void loadSavedViews();
   }, []);
 
   function applySearch() {
@@ -173,41 +134,42 @@ export default function IntelFilesPage() {
     setViewMessage(null);
   }
 
-  function currentFilters(): SavedViewFilters {
+  function currentFilters(): IntelFileSavedViewFilters {
     return {
       query: query.trim(),
       status,
       sort,
       order,
-      pageSize,
+      page_size: pageSize,
     };
   }
 
-  function saveView() {
+  async function saveView() {
     const name = viewName.trim();
     if (!name) {
       setViewMessage("Name the view before saving.");
       return;
     }
     const filters = currentFilters();
-    const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || crypto.randomUUID();
-    const nextView: SavedView = {
-      id,
-      name,
-      ...filters,
-      createdAt: new Date().toISOString(),
-    };
-    const nextViews = [
-      nextView,
-      ...savedViews.filter((item) => item.id !== id),
-    ].slice(0, 12);
-    setSavedViews(nextViews);
-    persistSavedViews(nextViews);
-    setSelectedViewId(nextView.id);
-    setViewName("");
-    setPage(1);
-    setAppliedQuery(filters.query);
-    setViewMessage(`Saved view: ${name}.`);
+    try {
+      const result = await saveIntelFileSavedView(name, filters);
+      if (!result.success || !result.data) {
+        setViewMessage(result.error?.message ?? "Failed to save view.");
+        return;
+      }
+      const savedView = result.data.item;
+      setSavedViews((views) => [
+        savedView,
+        ...views.filter((item) => item.id !== savedView.id),
+      ]);
+      setSelectedViewId(savedView.id);
+      setViewName("");
+      setPage(1);
+      setAppliedQuery(filters.query);
+      setViewMessage(`Saved shared view: ${name}.`);
+    } catch (err) {
+      setViewMessage(err instanceof Error ? err.message : "Failed to save view.");
+    }
   }
 
   function applySavedView(viewId: string) {
@@ -217,26 +179,33 @@ export default function IntelFilesPage() {
       return;
     }
     setSelectedViewId(view.id);
-    setQuery(view.query);
-    setAppliedQuery(view.query);
-    setStatus(view.status);
-    setSort(view.sort);
-    setOrder(view.order);
-    setPageSize(view.pageSize);
+    setQuery(view.filters.query);
+    setAppliedQuery(view.filters.query);
+    setStatus(view.filters.status);
+    setSort(view.filters.sort);
+    setOrder(view.filters.order);
+    setPageSize(view.filters.page_size);
     setPage(1);
     setViewMessage(`Applied view: ${view.name}.`);
   }
 
-  function deleteSavedView() {
+  async function deleteSavedView() {
     if (!selectedViewId) {
       return;
     }
     const view = savedViews.find((item) => item.id === selectedViewId);
-    const nextViews = savedViews.filter((item) => item.id !== selectedViewId);
-    setSavedViews(nextViews);
-    persistSavedViews(nextViews);
-    setSelectedViewId("");
-    setViewMessage(view ? `Deleted view: ${view.name}.` : "Deleted saved view.");
+    try {
+      const result = await deleteIntelFileSavedView(selectedViewId);
+      if (!result.success || !result.data) {
+        setViewMessage(result.error?.message ?? "Failed to delete view.");
+        return;
+      }
+      setSavedViews((views) => views.filter((item) => item.id !== selectedViewId));
+      setSelectedViewId("");
+      setViewMessage(view ? `Deleted shared view: ${view.name}.` : "Deleted saved view.");
+    } catch (err) {
+      setViewMessage(err instanceof Error ? err.message : "Failed to delete view.");
+    }
   }
 
   return (
@@ -323,7 +292,7 @@ export default function IntelFilesPage() {
             onChange={(event) => setViewName(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
-                saveView();
+                void saveView();
               }
             }}
             className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
@@ -332,14 +301,14 @@ export default function IntelFilesPage() {
         </label>
         <button
           type="button"
-          onClick={saveView}
+          onClick={() => void saveView()}
           className="self-end rounded border border-cyan-500 bg-cyan-500 px-3 py-2 text-sm font-medium text-slate-950"
         >
           Save View
         </button>
         <button
           type="button"
-          onClick={deleteSavedView}
+          onClick={() => void deleteSavedView()}
           disabled={!selectedViewId}
           className="self-end rounded border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
         >

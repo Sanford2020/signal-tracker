@@ -16,6 +16,7 @@ from app.api.v1.lifecycle import router as lifecycle_router
 from app.api.v1.match_suggestions import router as match_suggestions_router
 from app.api.v1.notifications import router as notifications_router
 from app.api.v1.reports import router as reports_router
+from app.api.v1.saved_views import router as saved_views_router
 from app.api.v1.usage import router as usage_router
 from app.api.v1.source_checks import router as source_checks_router
 
@@ -32,6 +33,7 @@ router.include_router(lifecycle_router)
 router.include_router(match_suggestions_router)
 router.include_router(notifications_router)
 router.include_router(reports_router)
+router.include_router(saved_views_router)
 router.include_router(usage_router)
 
 

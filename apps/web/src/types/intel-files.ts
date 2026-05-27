@@ -40,6 +40,38 @@ export type IntelFileListData = {
   page_size: number;
 };
 
+export type IntelFileSavedViewFilters = {
+  query: string;
+  status: string;
+  sort: string;
+  order: "asc" | "desc";
+  page_size: number;
+};
+
+export type IntelFileSavedView = {
+  id: string;
+  workspace_id: string | null;
+  name: string;
+  slug: string;
+  filters: IntelFileSavedViewFilters;
+  created_by_email: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type IntelFileSavedViewListData = {
+  items: IntelFileSavedView[];
+  total: number;
+};
+
+export type IntelFileSavedViewData = {
+  item: IntelFileSavedView;
+};
+
+export type IntelFileSavedViewDeleteData = {
+  deleted_id: string;
+};
+
 export type EvidenceSummary = {
   id: string;
   intel_file_id: string;

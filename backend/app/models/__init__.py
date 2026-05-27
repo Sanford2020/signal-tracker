@@ -14,6 +14,7 @@ from app.models.source import Source
 from app.models.raw_item import RawItem
 from app.models.signal_analysis import SignalAnalysis
 from app.models.intel_file import IntelFile
+from app.models.intel_file_saved_view import IntelFileSavedView
 from app.models.evidence import Evidence
 from app.models.intel_event import IntelEvent
 from app.models.lifecycle_snapshot import LifecycleSnapshot
@@ -41,6 +42,7 @@ __all__ = [
     "IntelEvent",
     "IntelEventType",
     "IntelFile",
+    "IntelFileSavedView",
     "IntelFileComment",
     "LifecycleSnapshot",
     "LifecycleStatus",

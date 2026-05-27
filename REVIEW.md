@@ -15,12 +15,40 @@ H10 Sources inline suggestion actions completed on 2026-05-26.
 H11 GitHub activity source pack completed on 2026-05-26.
 H12 arXiv research source pack completed on 2026-05-26.
 H13 source provider health visibility completed on 2026-05-26.
+H14 workspace-backed shared saved views completed on 2026-05-27.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
 The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub Releases/Issues/Commits, RSS, Hacker News, and arXiv source providers, plus known follow-ups for richer commercial UI depth.
+
+## 2026-05-27 H14 Workspace-Backed Shared Saved Views Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Added `0015_intel_file_saved_views` migration and ORM model.
+- Added workspace-scoped saved view schemas, service, and API routes.
+- Added `GET/POST/DELETE /api/v1/intel-file-saved-views`.
+- Intel Files page now loads, saves, applies, and deletes saved views through the backend API instead of localStorage.
+- Added backend tests for create/list/delete, upsert by workspace slug, and workspace isolation.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Focused saved view tests: passed.
+- Frontend type-check: passed.
+
+### Residual Risks
+
+- Saved view mutations do not yet have dedicated loading/disabled UI states.
 
 ## 2026-05-26 H13 Source Provider Health Visibility Review
 

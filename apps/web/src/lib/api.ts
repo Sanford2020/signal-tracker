@@ -27,6 +27,10 @@ import type {
   IntelFileCreateRequest,
   IntelFileDetailData,
   IntelFileListData,
+  IntelFileSavedViewData,
+  IntelFileSavedViewDeleteData,
+  IntelFileSavedViewFilters,
+  IntelFileSavedViewListData,
   MatchSuggestionAcceptData,
   MatchSuggestionGenerateData,
   MatchSuggestionListData,
@@ -141,6 +145,23 @@ export async function fetchIntelFiles(pageOrOptions: number | IntelFileListOptio
     params.set("order", options.order);
   }
   return request<IntelFileListData>(`/api/v1/intel-files?${params.toString()}`);
+}
+
+export async function fetchIntelFileSavedViews() {
+  return request<IntelFileSavedViewListData>("/api/v1/intel-file-saved-views");
+}
+
+export async function saveIntelFileSavedView(name: string, filters: IntelFileSavedViewFilters) {
+  return request<IntelFileSavedViewData>("/api/v1/intel-file-saved-views", {
+    method: "POST",
+    body: JSON.stringify({ name, filters }),
+  });
+}
+
+export async function deleteIntelFileSavedView(viewId: string) {
+  return request<IntelFileSavedViewDeleteData>(`/api/v1/intel-file-saved-views/${viewId}`, {
+    method: "DELETE",
+  });
 }
 
 export async function fetchIntelFileDetail(intelFileId: string) {
