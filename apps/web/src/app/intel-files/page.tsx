@@ -67,11 +67,17 @@ export default function IntelFilesPage() {
   const [savedViewsLoading, setSavedViewsLoading] = useState(true);
   const [savingView, setSavingView] = useState(false);
   const [updatingView, setUpdatingView] = useState(false);
+  const [settingDefaultView, setSettingDefaultView] = useState(false);
   const [deletingView, setDeletingView] = useState(false);
+  const [hasAppliedDefaultView, setHasAppliedDefaultView] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [pageSize, total]);
+  const selectedSavedView = useMemo(
+    () => savedViews.find((item) => item.id === selectedViewId) ?? null,
+    [savedViews, selectedViewId],
+  );
 
   const loadFiles = useCallback(async () => {
     setLoading(true);
@@ -115,7 +121,13 @@ export default function IntelFilesPage() {
           setViewMessage(result.error?.message ?? "Failed to load saved views.");
           return;
         }
-        setSavedViews(result.data.items);
+        const views = result.data.items;
+        setSavedViews(views);
+        const defaultView = views.find((view) => view.is_default);
+        if (defaultView && !hasAppliedDefaultView) {
+          applySavedViewItem(defaultView, `Applied default view: ${defaultView.name}.`);
+          setHasAppliedDefaultView(true);
+        }
       } catch (err) {
         setViewMessage(err instanceof Error ? err.message : "Failed to load saved views.");
       } finally {
@@ -140,6 +152,7 @@ export default function IntelFilesPage() {
     setOrder("desc");
     setSelectedViewId("");
     setViewName("");
+    setHasAppliedDefaultView(true);
     setViewMessage(null);
   }
 
@@ -184,6 +197,15 @@ export default function IntelFilesPage() {
     }
   }
 
+  function replaceSavedView(updatedView: IntelFileSavedView) {
+    setSavedViews((views) => [
+      updatedView,
+      ...views
+        .filter((item) => item.id !== updatedView.id)
+        .map((item) => (updatedView.is_default ? { ...item, is_default: false } : item)),
+    ]);
+  }
+
   async function updateSelectedView() {
     if (!selectedViewId) {
       return;
@@ -203,10 +225,7 @@ export default function IntelFilesPage() {
         return;
       }
       const updatedView = result.data.item;
-      setSavedViews((views) => [
-        updatedView,
-        ...views.filter((item) => item.id !== updatedView.id),
-      ]);
+      replaceSavedView(updatedView);
       setSelectedViewId(updatedView.id);
       setViewName(updatedView.name);
       setPage(1);
@@ -219,13 +238,30 @@ export default function IntelFilesPage() {
     }
   }
 
-  function applySavedView(viewId: string) {
-    const view = savedViews.find((item) => item.id === viewId);
-    if (!view) {
-      setSelectedViewId("");
-      setViewName("");
+  async function setSelectedViewAsDefault() {
+    if (!selectedViewId) {
       return;
     }
+    setSettingDefaultView(true);
+    try {
+      const result = await updateIntelFileSavedView(selectedViewId, { is_default: true });
+      if (!result.success || !result.data) {
+        setViewMessage(result.error?.message ?? "Failed to set default view.");
+        return;
+      }
+      const updatedView = result.data.item;
+      replaceSavedView(updatedView);
+      setSelectedViewId(updatedView.id);
+      setViewName(updatedView.name);
+      setViewMessage(`Default view set: ${updatedView.name}.`);
+    } catch (err) {
+      setViewMessage(err instanceof Error ? err.message : "Failed to set default view.");
+    } finally {
+      setSettingDefaultView(false);
+    }
+  }
+
+  function applySavedViewItem(view: IntelFileSavedView, message?: string) {
     setSelectedViewId(view.id);
     setViewName(view.name);
     setQuery(view.filters.query);
@@ -235,7 +271,18 @@ export default function IntelFilesPage() {
     setOrder(view.filters.order);
     setPageSize(view.filters.page_size);
     setPage(1);
-    setViewMessage(`Applied view: ${view.name}.`);
+    setViewMessage(message ?? `Applied view: ${view.name}.`);
+  }
+
+  function applySavedView(viewId: string) {
+    const view = savedViews.find((item) => item.id === viewId);
+    if (!view) {
+      setSelectedViewId("");
+      setViewName("");
+      return;
+    }
+    setHasAppliedDefaultView(true);
+    applySavedViewItem(view);
   }
 
   async function deleteSavedView() {
@@ -253,6 +300,9 @@ export default function IntelFilesPage() {
       setSavedViews((views) => views.filter((item) => item.id !== selectedViewId));
       setSelectedViewId("");
       setViewName("");
+      if (view?.is_default) {
+        setHasAppliedDefaultView(true);
+      }
       setViewMessage(view ? `Deleted shared view: ${view.name}.` : "Deleted saved view.");
     } catch (err) {
       setViewMessage(err instanceof Error ? err.message : "Failed to delete view.");
@@ -322,19 +372,19 @@ export default function IntelFilesPage() {
         </button>
       </div>
 
-      <div className="grid gap-3 rounded border border-slate-800 bg-slate-900/40 p-4 lg:grid-cols-[1fr_1.2fr_auto_auto_auto]">
+      <div className="grid gap-3 rounded border border-slate-800 bg-slate-900/40 p-4 lg:grid-cols-[1fr_1.2fr_auto_auto_auto_auto]">
         <label className="space-y-1">
           <span className="text-xs uppercase text-slate-500">Saved views</span>
           <select
             value={selectedViewId}
             onChange={(event) => applySavedView(event.target.value)}
-            disabled={savedViewsLoading || savingView || updatingView || deletingView}
+            disabled={savedViewsLoading || savingView || updatingView || settingDefaultView || deletingView}
             className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
           >
             <option value="">{savedViewsLoading ? "Loading views..." : "Select view"}</option>
             {savedViews.map((view) => (
               <option key={view.id} value={view.id}>
-                {view.name}
+                {view.is_default ? `${view.name} (default)` : view.name}
               </option>
             ))}
           </select>
@@ -353,7 +403,7 @@ export default function IntelFilesPage() {
                 }
               }
             }}
-            disabled={savingView || updatingView || deletingView}
+            disabled={savingView || updatingView || settingDefaultView || deletingView}
             className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
             placeholder="High opportunity watchlist"
           />
@@ -361,7 +411,7 @@ export default function IntelFilesPage() {
         <button
           type="button"
           onClick={() => void saveView()}
-          disabled={savingView || updatingView || deletingView || savedViewsLoading}
+          disabled={savingView || updatingView || settingDefaultView || deletingView || savedViewsLoading}
           className="self-end rounded border border-cyan-500 bg-cyan-500 px-3 py-2 text-sm font-medium text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {savingView ? "Saving..." : "Save View"}
@@ -369,15 +419,31 @@ export default function IntelFilesPage() {
         <button
           type="button"
           onClick={() => void updateSelectedView()}
-          disabled={!selectedViewId || savingView || updatingView || deletingView || savedViewsLoading}
+          disabled={!selectedViewId || savingView || updatingView || settingDefaultView || deletingView || savedViewsLoading}
           className="self-end rounded border border-emerald-500 bg-emerald-500 px-3 py-2 text-sm font-medium text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {updatingView ? "Updating..." : "Update Selected"}
         </button>
         <button
           type="button"
+          onClick={() => void setSelectedViewAsDefault()}
+          disabled={
+            !selectedViewId ||
+            Boolean(selectedSavedView?.is_default) ||
+            savingView ||
+            updatingView ||
+            settingDefaultView ||
+            deletingView ||
+            savedViewsLoading
+          }
+          className="self-end rounded border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {settingDefaultView ? "Setting..." : selectedSavedView?.is_default ? "Default" : "Set Default"}
+        </button>
+        <button
+          type="button"
           onClick={() => void deleteSavedView()}
-          disabled={!selectedViewId || savingView || updatingView || deletingView || savedViewsLoading}
+          disabled={!selectedViewId || savingView || updatingView || settingDefaultView || deletingView || savedViewsLoading}
           className="self-end rounded border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {deletingView ? "Deleting..." : "Delete"}

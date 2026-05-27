@@ -52,6 +52,7 @@ def test_saved_views_can_be_created_listed_and_deleted(client: TestClient, db_se
     assert item["name"] == "High Opportunity"
     assert item["slug"] == "high-opportunity"
     assert item["workspace_id"] == str(workspace.id)
+    assert item["is_default"] is False
     assert item["filters"] == payload["filters"]
 
     listed = client.get("/api/v1/intel-file-saved-views", headers=_headers(workspace))
@@ -154,6 +155,73 @@ def test_saved_view_rename_rejects_workspace_slug_conflict(client: TestClient, d
 
     assert first.status_code == 200
     assert conflict.status_code == 409
+
+
+def test_saved_views_have_one_default_per_workspace(client: TestClient, db_session: Session) -> None:
+    workspace = _workspace(db_session, "Alpha Team")
+    headers = _headers(workspace)
+    first = client.post(
+        "/api/v1/intel-file-saved-views",
+        headers=headers,
+        json={
+            "name": "Watchlist",
+            "is_default": True,
+            "filters": {"query": "agents", "status": "", "sort": "updated_at", "order": "desc", "page_size": 20},
+        },
+    )
+    second = client.post(
+        "/api/v1/intel-file-saved-views",
+        headers=headers,
+        json={
+            "name": "Research",
+            "is_default": True,
+            "filters": {"query": "papers", "status": "", "sort": "updated_at", "order": "desc", "page_size": 20},
+        },
+    )
+
+    listed = client.get("/api/v1/intel-file-saved-views", headers=headers)
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    defaults = [item for item in listed.json()["data"]["items"] if item["is_default"]]
+    assert len(defaults) == 1
+    assert defaults[0]["name"] == "Research"
+
+
+def test_saved_view_default_can_be_changed_by_patch(client: TestClient, db_session: Session) -> None:
+    workspace = _workspace(db_session, "Alpha Team")
+    headers = _headers(workspace)
+    first = client.post(
+        "/api/v1/intel-file-saved-views",
+        headers=headers,
+        json={
+            "name": "Watchlist",
+            "filters": {"query": "agents", "status": "", "sort": "updated_at", "order": "desc", "page_size": 20},
+        },
+    )
+    second = client.post(
+        "/api/v1/intel-file-saved-views",
+        headers=headers,
+        json={
+            "name": "Research",
+            "is_default": True,
+            "filters": {"query": "papers", "status": "", "sort": "updated_at", "order": "desc", "page_size": 20},
+        },
+    )
+
+    updated = client.patch(
+        f"/api/v1/intel-file-saved-views/{first.json()['data']['item']['id']}",
+        headers=headers,
+        json={"is_default": True},
+    )
+    listed = client.get("/api/v1/intel-file-saved-views", headers=headers)
+
+    assert second.status_code == 200
+    assert updated.status_code == 200
+    assert updated.json()["data"]["item"]["is_default"] is True
+    defaults = [item for item in listed.json()["data"]["items"] if item["is_default"]]
+    assert len(defaults) == 1
+    assert defaults[0]["id"] == first.json()["data"]["item"]["id"]
 
 
 def test_saved_views_are_workspace_scoped(client: TestClient, db_session: Session) -> None:

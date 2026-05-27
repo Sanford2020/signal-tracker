@@ -18,11 +18,13 @@ class IntelFileSavedViewFilters(BaseModel):
 class IntelFileSavedViewCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     filters: IntelFileSavedViewFilters
+    is_default: bool = False
 
 
 class IntelFileSavedViewUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
     filters: IntelFileSavedViewFilters | None = None
+    is_default: bool | None = None
 
 
 class IntelFileSavedViewRead(BaseModel):
@@ -31,6 +33,7 @@ class IntelFileSavedViewRead(BaseModel):
     name: str
     slug: str
     filters: IntelFileSavedViewFilters
+    is_default: bool
     created_by_email: str | None
     created_at: datetime
     updated_at: datetime

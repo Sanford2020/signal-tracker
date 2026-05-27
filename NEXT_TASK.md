@@ -83,6 +83,9 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
 - H19 saved view rename/update affordances are implemented and validated:
   - Saved views can be patched by id through the v1 API without relying on name-based upsert.
   - Intel Files workbench can rename and update the selected shared view with current filters.
+- H20 saved-view default workflow is implemented and validated:
+  - Saved views can be marked as the workspace default while preserving one default per workspace.
+  - Intel Files workbench automatically applies the default shared view on load.
 
 ## Goal
 
@@ -97,9 +100,9 @@ Create the real hosted staging deployment using the prepared Render Blueprint, a
 - Create `.env.production` from `.env.production.example`.
 - Run `scripts\predeploy-check.ps1`.
 - Run `scripts\check-env-readiness.ps1` against the production-like env file.
-- Run migrations through `0015_intel_file_saved_views`.
+- Run migrations through `0016_saved_view_default`.
 - Run `scripts\smoke-staging.ps1` against hosted URLs with `-AdminApiKey`.
 
 ## Next Implementation Candidates After Staging
 
-- Add saved-view default/pinned-view support for recurring analyst workflows.
+- Add saved view sharing metadata such as owner, description, and last-used timestamp.

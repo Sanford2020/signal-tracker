@@ -26,6 +26,17 @@ def _to_read(view: IntelFileSavedView) -> IntelFileSavedViewRead:
     return IntelFileSavedViewRead.model_validate(view)
 
 
+def _clear_default_views(db: Session, *, workspace_id: UUID | None, except_view_id: UUID | None = None) -> None:
+    stmt = select(IntelFileSavedView).where(
+        IntelFileSavedView.workspace_id == workspace_id,
+        IntelFileSavedView.is_default.is_(True),
+    )
+    if except_view_id is not None:
+        stmt = stmt.where(IntelFileSavedView.id != except_view_id)
+    for view in db.scalars(stmt).all():
+        view.is_default = False
+
+
 def list_intel_file_saved_views(
     db: Session,
     *,
@@ -57,14 +68,20 @@ def upsert_intel_file_saved_view(
             name=name,
             slug=slug,
             filters=payload.filters.model_dump(),
+            is_default=payload.is_default,
             created_by_email=actor_email.strip().lower() if actor_email else None,
         )
         db.add(view)
     else:
         view.name = name
         view.filters = payload.filters.model_dump()
+        if payload.is_default:
+            view.is_default = True
         if actor_email:
             view.created_by_email = actor_email.strip().lower()
+    if payload.is_default:
+        db.flush()
+        _clear_default_views(db, workspace_id=workspace_id, except_view_id=view.id)
     db.commit()
     db.refresh(view)
     return IntelFileSavedViewData(item=_to_read(view))
@@ -104,6 +121,11 @@ def update_intel_file_saved_view(
 
     if payload.filters is not None:
         view.filters = payload.filters.model_dump()
+
+    if payload.is_default is not None:
+        view.is_default = payload.is_default
+        if payload.is_default:
+            _clear_default_views(db, workspace_id=workspace_id, except_view_id=view.id)
 
     if actor_email:
         view.created_by_email = actor_email.strip().lower()

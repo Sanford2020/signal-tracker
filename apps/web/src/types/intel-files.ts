@@ -54,6 +54,7 @@ export type IntelFileSavedView = {
   name: string;
   slug: string;
   filters: IntelFileSavedViewFilters;
+  is_default: boolean;
   created_by_email: string | null;
   created_at: string;
   updated_at: string;
@@ -75,6 +76,7 @@ export type IntelFileSavedViewDeleteData = {
 export type IntelFileSavedViewUpdateRequest = {
   name?: string;
   filters?: IntelFileSavedViewFilters;
+  is_default?: boolean;
 };
 
 export type EvidenceSummary = {

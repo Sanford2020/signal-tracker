@@ -21,12 +21,41 @@ H16 shared saved view mutation states completed on 2026-05-27.
 H17 provider health failed-query drill-down completed on 2026-05-27.
 H18 provider health filtering completed on 2026-05-27.
 H19 saved view rename/update affordances completed on 2026-05-27.
+H20 saved-view default workflow completed on 2026-05-27.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
 The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub Releases/Issues/Commits, RSS, Hacker News, and arXiv source providers, plus known follow-ups for richer commercial UI depth.
+
+## 2026-05-27 H20 Saved View Default Workflow Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Added `0016_saved_view_default` migration and `is_default` saved-view model/schema field.
+- Saved-view create/update logic now keeps one default view per workspace.
+- Intel Files workbench can mark the selected shared view as default.
+- Intel Files workbench applies the default shared view when saved views load.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Focused saved view tests: passed.
+- Backend pytest: passed.
+- Frontend type-check: passed.
+- Frontend production build: passed.
+
+### Residual Risks
+
+- Default view auto-apply runs on the current client session only; richer per-user preferences can be added after real auth.
 
 ## 2026-05-27 H19 Saved View Rename/Update Review
 
@@ -53,7 +82,7 @@ No blocking findings.
 
 ### Residual Risks
 
-- Default/pinned saved views remain a future analyst workflow improvement.
+- Default saved views are now implemented. Per-user pinned views remain a future preference feature.
 
 ## 2026-05-27 H18 Provider Health Filtering Review
 

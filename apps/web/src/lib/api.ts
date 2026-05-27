@@ -152,10 +152,10 @@ export async function fetchIntelFileSavedViews() {
   return request<IntelFileSavedViewListData>("/api/v1/intel-file-saved-views");
 }
 
-export async function saveIntelFileSavedView(name: string, filters: IntelFileSavedViewFilters) {
+export async function saveIntelFileSavedView(name: string, filters: IntelFileSavedViewFilters, isDefault = false) {
   return request<IntelFileSavedViewData>("/api/v1/intel-file-saved-views", {
     method: "POST",
-    body: JSON.stringify({ name, filters }),
+    body: JSON.stringify({ name, filters, is_default: isDefault }),
   });
 }
 
