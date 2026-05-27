@@ -86,6 +86,9 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
 - H20 saved-view default workflow is implemented and validated:
   - Saved views can be marked as the workspace default while preserving one default per workspace.
   - Intel Files workbench automatically applies the default shared view on load.
+- H21 saved-view usage metadata is implemented and validated:
+  - Saved views now support descriptions and last-used timestamps via migration `0017_saved_view_usage_metadata`.
+  - Intel Files workbench records last-used time when a shared view is applied and shows owner/description usage context.
 
 ## Goal
 
@@ -100,9 +103,9 @@ Create the real hosted staging deployment using the prepared Render Blueprint, a
 - Create `.env.production` from `.env.production.example`.
 - Run `scripts\predeploy-check.ps1`.
 - Run `scripts\check-env-readiness.ps1` against the production-like env file.
-- Run migrations through `0016_saved_view_default`.
+- Run migrations through `0017_saved_view_usage_metadata`.
 - Run `scripts\smoke-staging.ps1` against hosted URLs with `-AdminApiKey`.
 
 ## Next Implementation Candidates After Staging
 
-- Add saved view sharing metadata such as owner, description, and last-used timestamp.
+- Add per-user saved view preferences after real hosted auth is selected.

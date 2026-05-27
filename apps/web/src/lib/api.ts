@@ -152,10 +152,15 @@ export async function fetchIntelFileSavedViews() {
   return request<IntelFileSavedViewListData>("/api/v1/intel-file-saved-views");
 }
 
-export async function saveIntelFileSavedView(name: string, filters: IntelFileSavedViewFilters, isDefault = false) {
+export async function saveIntelFileSavedView(
+  name: string,
+  filters: IntelFileSavedViewFilters,
+  description = "",
+  isDefault = false,
+) {
   return request<IntelFileSavedViewData>("/api/v1/intel-file-saved-views", {
     method: "POST",
-    body: JSON.stringify({ name, filters, is_default: isDefault }),
+    body: JSON.stringify({ name, description, filters, is_default: isDefault }),
   });
 }
 
@@ -169,6 +174,12 @@ export async function updateIntelFileSavedView(viewId: string, body: IntelFileSa
   return request<IntelFileSavedViewData>(`/api/v1/intel-file-saved-views/${viewId}`, {
     method: "PATCH",
     body: JSON.stringify(body),
+  });
+}
+
+export async function markIntelFileSavedViewUsed(viewId: string) {
+  return request<IntelFileSavedViewData>(`/api/v1/intel-file-saved-views/${viewId}/use`, {
+    method: "POST",
   });
 }
 

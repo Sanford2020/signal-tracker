@@ -17,12 +17,14 @@ class IntelFileSavedViewFilters(BaseModel):
 
 class IntelFileSavedViewCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=120)
+    description: str = Field("", max_length=240)
     filters: IntelFileSavedViewFilters
     is_default: bool = False
 
 
 class IntelFileSavedViewUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
+    description: str | None = Field(default=None, max_length=240)
     filters: IntelFileSavedViewFilters | None = None
     is_default: bool | None = None
 
@@ -32,8 +34,10 @@ class IntelFileSavedViewRead(BaseModel):
     workspace_id: UUID | None
     name: str
     slug: str
+    description: str
     filters: IntelFileSavedViewFilters
     is_default: bool
+    last_used_at: datetime | None
     created_by_email: str | None
     created_at: datetime
     updated_at: datetime

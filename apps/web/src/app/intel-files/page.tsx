@@ -7,6 +7,7 @@ import {
   deleteIntelFileSavedView,
   fetchIntelFiles,
   fetchIntelFileSavedViews,
+  markIntelFileSavedViewUsed,
   saveIntelFileSavedView,
   updateIntelFileSavedView,
 } from "@/lib/api";
@@ -50,6 +51,10 @@ function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+function formatOptionalDate(value: string | null) {
+  return value ? formatDate(value) : "-";
+}
+
 export default function IntelFilesPage() {
   const [items, setItems] = useState<IntelFileSummary[]>([]);
   const [total, setTotal] = useState(0);
@@ -63,6 +68,7 @@ export default function IntelFilesPage() {
   const [savedViews, setSavedViews] = useState<IntelFileSavedView[]>([]);
   const [selectedViewId, setSelectedViewId] = useState("");
   const [viewName, setViewName] = useState("");
+  const [viewDescription, setViewDescription] = useState("");
   const [viewMessage, setViewMessage] = useState<string | null>(null);
   const [savedViewsLoading, setSavedViewsLoading] = useState(true);
   const [savingView, setSavingView] = useState(false);
@@ -125,7 +131,7 @@ export default function IntelFilesPage() {
         setSavedViews(views);
         const defaultView = views.find((view) => view.is_default);
         if (defaultView && !hasAppliedDefaultView) {
-          applySavedViewItem(defaultView, `Applied default view: ${defaultView.name}.`);
+          void applyAndMarkSavedViewUsed(defaultView, `Applied default view: ${defaultView.name}.`);
           setHasAppliedDefaultView(true);
         }
       } catch (err) {
@@ -152,6 +158,7 @@ export default function IntelFilesPage() {
     setOrder("desc");
     setSelectedViewId("");
     setViewName("");
+    setViewDescription("");
     setHasAppliedDefaultView(true);
     setViewMessage(null);
   }
@@ -168,6 +175,7 @@ export default function IntelFilesPage() {
 
   async function saveView() {
     const name = viewName.trim();
+    const description = viewDescription.trim();
     if (!name) {
       setViewMessage("Name the view before saving.");
       return;
@@ -175,7 +183,7 @@ export default function IntelFilesPage() {
     const filters = currentFilters();
     setSavingView(true);
     try {
-      const result = await saveIntelFileSavedView(name, filters);
+      const result = await saveIntelFileSavedView(name, filters, description);
       if (!result.success || !result.data) {
         setViewMessage(result.error?.message ?? "Failed to save view.");
         return;
@@ -187,6 +195,7 @@ export default function IntelFilesPage() {
       ]);
       setSelectedViewId(savedView.id);
       setViewName("");
+      setViewDescription("");
       setPage(1);
       setAppliedQuery(filters.query);
       setViewMessage(`Saved shared view: ${name}.`);
@@ -212,6 +221,7 @@ export default function IntelFilesPage() {
     }
     const selectedView = savedViews.find((item) => item.id === selectedViewId);
     const name = viewName.trim() || selectedView?.name;
+    const description = viewDescription.trim();
     if (!name) {
       setViewMessage("Name the view before updating.");
       return;
@@ -219,7 +229,7 @@ export default function IntelFilesPage() {
     const filters = currentFilters();
     setUpdatingView(true);
     try {
-      const result = await updateIntelFileSavedView(selectedViewId, { name, filters });
+      const result = await updateIntelFileSavedView(selectedViewId, { name, description, filters });
       if (!result.success || !result.data) {
         setViewMessage(result.error?.message ?? "Failed to update view.");
         return;
@@ -228,6 +238,7 @@ export default function IntelFilesPage() {
       replaceSavedView(updatedView);
       setSelectedViewId(updatedView.id);
       setViewName(updatedView.name);
+      setViewDescription(updatedView.description);
       setPage(1);
       setAppliedQuery(filters.query);
       setViewMessage(`Updated shared view: ${updatedView.name}.`);
@@ -253,6 +264,7 @@ export default function IntelFilesPage() {
       replaceSavedView(updatedView);
       setSelectedViewId(updatedView.id);
       setViewName(updatedView.name);
+      setViewDescription(updatedView.description);
       setViewMessage(`Default view set: ${updatedView.name}.`);
     } catch (err) {
       setViewMessage(err instanceof Error ? err.message : "Failed to set default view.");
@@ -264,6 +276,7 @@ export default function IntelFilesPage() {
   function applySavedViewItem(view: IntelFileSavedView, message?: string) {
     setSelectedViewId(view.id);
     setViewName(view.name);
+    setViewDescription(view.description);
     setQuery(view.filters.query);
     setAppliedQuery(view.filters.query);
     setStatus(view.filters.status);
@@ -274,15 +287,28 @@ export default function IntelFilesPage() {
     setViewMessage(message ?? `Applied view: ${view.name}.`);
   }
 
+  async function applyAndMarkSavedViewUsed(view: IntelFileSavedView, message?: string) {
+    applySavedViewItem(view, message);
+    try {
+      const result = await markIntelFileSavedViewUsed(view.id);
+      if (result.success && result.data) {
+        replaceSavedView(result.data.item);
+      }
+    } catch {
+      setViewMessage(message ?? `Applied view: ${view.name}. Last-used timestamp was not updated.`);
+    }
+  }
+
   function applySavedView(viewId: string) {
     const view = savedViews.find((item) => item.id === viewId);
     if (!view) {
       setSelectedViewId("");
       setViewName("");
+      setViewDescription("");
       return;
     }
     setHasAppliedDefaultView(true);
-    applySavedViewItem(view);
+    void applyAndMarkSavedViewUsed(view);
   }
 
   async function deleteSavedView() {
@@ -300,6 +326,7 @@ export default function IntelFilesPage() {
       setSavedViews((views) => views.filter((item) => item.id !== selectedViewId));
       setSelectedViewId("");
       setViewName("");
+      setViewDescription("");
       if (view?.is_default) {
         setHasAppliedDefaultView(true);
       }
@@ -372,7 +399,7 @@ export default function IntelFilesPage() {
         </button>
       </div>
 
-      <div className="grid gap-3 rounded border border-slate-800 bg-slate-900/40 p-4 lg:grid-cols-[1fr_1.2fr_auto_auto_auto_auto]">
+      <div className="grid gap-3 rounded border border-slate-800 bg-slate-900/40 p-4 lg:grid-cols-[1fr_1fr_1fr_auto_auto_auto_auto]">
         <label className="space-y-1">
           <span className="text-xs uppercase text-slate-500">Saved views</span>
           <select
@@ -406,6 +433,17 @@ export default function IntelFilesPage() {
             disabled={savingView || updatingView || settingDefaultView || deletingView}
             className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
             placeholder="High opportunity watchlist"
+          />
+        </label>
+        <label className="space-y-1">
+          <span className="text-xs uppercase text-slate-500">Description</span>
+          <input
+            value={viewDescription}
+            onChange={(event) => setViewDescription(event.target.value)}
+            disabled={savingView || updatingView || settingDefaultView || deletingView}
+            className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
+            placeholder="Daily triage, investor leads"
+            maxLength={240}
           />
         </label>
         <button
@@ -451,6 +489,13 @@ export default function IntelFilesPage() {
       </div>
 
       {viewMessage ? <p className="text-sm text-cyan-300">{viewMessage}</p> : null}
+      {selectedSavedView ? (
+        <p className="text-xs text-slate-500">
+          {selectedSavedView.description ? `${selectedSavedView.description} · ` : ""}
+          Last used: {formatOptionalDate(selectedSavedView.last_used_at)}
+          {selectedSavedView.created_by_email ? ` · Owner: ${selectedSavedView.created_by_email}` : ""}
+        </p>
+      ) : null}
 
       <div className="grid gap-3 md:grid-cols-3">
         <Metric label="Matching files" value={String(total)} />

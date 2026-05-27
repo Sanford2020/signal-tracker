@@ -20,8 +20,10 @@ class IntelFileSavedView(Base):
     )
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     slug: Mapped[str] = mapped_column(String(140), nullable=False)
+    description: Mapped[str] = mapped_column(String(240), nullable=False, default="", server_default="")
     filters: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     is_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_by_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

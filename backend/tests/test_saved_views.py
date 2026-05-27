@@ -52,7 +52,9 @@ def test_saved_views_can_be_created_listed_and_deleted(client: TestClient, db_se
     assert item["name"] == "High Opportunity"
     assert item["slug"] == "high-opportunity"
     assert item["workspace_id"] == str(workspace.id)
+    assert item["description"] == ""
     assert item["is_default"] is False
+    assert item["last_used_at"] is None
     assert item["filters"] == payload["filters"]
 
     listed = client.get("/api/v1/intel-file-saved-views", headers=_headers(workspace))
@@ -104,6 +106,7 @@ def test_saved_views_can_be_renamed_and_updated_by_id(client: TestClient, db_ses
         headers=headers,
         json={
             "name": "Watchlist",
+            "description": "Daily high-signal sweep",
             "filters": {"query": "agents", "status": "", "sort": "updated_at", "order": "desc", "page_size": 20},
         },
     )
@@ -114,6 +117,7 @@ def test_saved_views_can_be_renamed_and_updated_by_id(client: TestClient, db_ses
         headers=headers,
         json={
             "name": "AI Watchlist",
+            "description": "Robotics heat check",
             "filters": {"query": "robotics", "status": "new", "sort": "heat_score", "order": "asc", "page_size": 10},
         },
     )
@@ -123,6 +127,7 @@ def test_saved_views_can_be_renamed_and_updated_by_id(client: TestClient, db_ses
     assert item["id"] == view_id
     assert item["name"] == "AI Watchlist"
     assert item["slug"] == "ai-watchlist"
+    assert item["description"] == "Robotics heat check"
     assert item["filters"]["query"] == "robotics"
     assert item["filters"]["sort"] == "heat_score"
 
@@ -222,6 +227,29 @@ def test_saved_view_default_can_be_changed_by_patch(client: TestClient, db_sessi
     defaults = [item for item in listed.json()["data"]["items"] if item["is_default"]]
     assert len(defaults) == 1
     assert defaults[0]["id"] == first.json()["data"]["item"]["id"]
+
+
+def test_saved_view_use_updates_last_used_at(client: TestClient, db_session: Session) -> None:
+    workspace = _workspace(db_session, "Alpha Team")
+    headers = _headers(workspace)
+    created = client.post(
+        "/api/v1/intel-file-saved-views",
+        headers=headers,
+        json={
+            "name": "Watchlist",
+            "description": "Daily sweep",
+            "filters": {"query": "agents", "status": "", "sort": "updated_at", "order": "desc", "page_size": 20},
+        },
+    )
+    view_id = created.json()["data"]["item"]["id"]
+
+    used = client.post(f"/api/v1/intel-file-saved-views/{view_id}/use", headers=headers)
+
+    assert used.status_code == 200
+    item = used.json()["data"]["item"]
+    assert item["id"] == view_id
+    assert item["description"] == "Daily sweep"
+    assert item["last_used_at"] is not None
 
 
 def test_saved_views_are_workspace_scoped(client: TestClient, db_session: Session) -> None:

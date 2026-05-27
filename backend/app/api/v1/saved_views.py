@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.modules.saved_views.service import (
     delete_intel_file_saved_view,
     list_intel_file_saved_views,
+    mark_intel_file_saved_view_used,
     update_intel_file_saved_view,
     upsert_intel_file_saved_view,
 )
@@ -50,6 +51,22 @@ def upsert_intel_file_saved_view_route(
         workspace_id=x_workspace_id,
         actor_email=x_user_email,
     )
+    return ApiResponse(success=True, data=data, error=None)
+
+
+@router.post("/{view_id}/use", response_model=ApiResponse[IntelFileSavedViewData])
+def mark_intel_file_saved_view_used_route(
+    view_id: UUID,
+    x_workspace_id: UUID | None = Header(None, alias="X-Workspace-Id"),
+    x_user_email: str | None = Header(None, alias="X-User-Email"),
+    x_user_token: str | None = Header(None, alias="X-User-Token"),
+    db: Session = Depends(get_db),
+) -> ApiResponse[IntelFileSavedViewData]:
+    try:
+        require_workspace_access(db, x_workspace_id, x_user_email, x_user_token)
+        data = mark_intel_file_saved_view_used(db, view_id, workspace_id=x_workspace_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
     return ApiResponse(success=True, data=data, error=None)
 
 

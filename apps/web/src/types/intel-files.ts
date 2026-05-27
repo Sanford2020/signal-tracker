@@ -53,8 +53,10 @@ export type IntelFileSavedView = {
   workspace_id: string | null;
   name: string;
   slug: string;
+  description: string;
   filters: IntelFileSavedViewFilters;
   is_default: boolean;
+  last_used_at: string | null;
   created_by_email: string | null;
   created_at: string;
   updated_at: string;
@@ -75,6 +77,7 @@ export type IntelFileSavedViewDeleteData = {
 
 export type IntelFileSavedViewUpdateRequest = {
   name?: string;
+  description?: string;
   filters?: IntelFileSavedViewFilters;
   is_default?: boolean;
 };

@@ -1,4 +1,5 @@
 import re
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -67,6 +68,7 @@ def upsert_intel_file_saved_view(
             workspace_id=workspace_id,
             name=name,
             slug=slug,
+            description=payload.description.strip(),
             filters=payload.filters.model_dump(),
             is_default=payload.is_default,
             created_by_email=actor_email.strip().lower() if actor_email else None,
@@ -74,6 +76,7 @@ def upsert_intel_file_saved_view(
         db.add(view)
     else:
         view.name = name
+        view.description = payload.description.strip()
         view.filters = payload.filters.model_dump()
         if payload.is_default:
             view.is_default = True
@@ -119,6 +122,9 @@ def update_intel_file_saved_view(
         view.name = name
         view.slug = slug
 
+    if payload.description is not None:
+        view.description = payload.description.strip()
+
     if payload.filters is not None:
         view.filters = payload.filters.model_dump()
 
@@ -130,6 +136,26 @@ def update_intel_file_saved_view(
     if actor_email:
         view.created_by_email = actor_email.strip().lower()
 
+    db.commit()
+    db.refresh(view)
+    return IntelFileSavedViewData(item=_to_read(view))
+
+
+def mark_intel_file_saved_view_used(
+    db: Session,
+    view_id: UUID,
+    *,
+    workspace_id: UUID | None = None,
+) -> IntelFileSavedViewData:
+    view = db.scalar(
+        select(IntelFileSavedView).where(
+            IntelFileSavedView.id == view_id,
+            IntelFileSavedView.workspace_id == workspace_id,
+        )
+    )
+    if view is None:
+        raise ValueError("Saved view not found.")
+    view.last_used_at = datetime.now(UTC)
     db.commit()
     db.refresh(view)
     return IntelFileSavedViewData(item=_to_read(view))

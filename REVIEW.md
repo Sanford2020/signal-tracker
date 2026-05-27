@@ -22,12 +22,42 @@ H17 provider health failed-query drill-down completed on 2026-05-27.
 H18 provider health filtering completed on 2026-05-27.
 H19 saved view rename/update affordances completed on 2026-05-27.
 H20 saved-view default workflow completed on 2026-05-27.
+H21 saved-view usage metadata completed on 2026-05-27.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
 The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub Releases/Issues/Commits, RSS, Hacker News, and arXiv source providers, plus known follow-ups for richer commercial UI depth.
+
+## 2026-05-27 H21 Saved View Usage Metadata Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Added `0017_saved_view_usage_metadata` migration with saved-view `description` and `last_used_at`.
+- Saved-view create/update supports editable descriptions.
+- Added `POST /api/v1/intel-file-saved-views/{view_id}/use` to record when a view is applied.
+- Intel Files workbench shows description, owner, and last-used metadata for the selected shared view.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Focused saved view tests: passed.
+- Backend pytest: passed.
+- SQLite migration smoke through head: passed.
+- Frontend type-check: passed.
+- Frontend production build: passed.
+
+### Residual Risks
+
+- Owner is still derived from the staging header identity; richer per-user preferences should wait for the production auth choice.
 
 ## 2026-05-27 H20 Saved View Default Workflow Review
 
