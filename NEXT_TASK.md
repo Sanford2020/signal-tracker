@@ -71,6 +71,9 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
 - H15 provider-specific error attribution is implemented and validated:
   - Source provider health now attributes recent failures back to each failed query's `source_hint`.
   - Sources page shows recent error counts and latest provider-level error by hint.
+- H16 shared saved view mutation states is implemented and validated:
+  - Intel Files saved view loading, saving, and deleting now have explicit UI states.
+  - Saved view controls are disabled during mutations to prevent duplicate submissions.
 
 ## Goal
 
@@ -90,5 +93,5 @@ Create the real hosted staging deployment using the prepared Render Blueprint, a
 
 ## Next Implementation Candidates After Staging
 
-- Add UI loading/disabled states for shared saved view mutations.
 - Add provider health filtering or drill-down for failed source-check queries.
+- Add saved view rename/update affordances beyond name-based upsert.

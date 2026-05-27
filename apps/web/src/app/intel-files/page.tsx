@@ -63,6 +63,9 @@ export default function IntelFilesPage() {
   const [selectedViewId, setSelectedViewId] = useState("");
   const [viewName, setViewName] = useState("");
   const [viewMessage, setViewMessage] = useState<string | null>(null);
+  const [savedViewsLoading, setSavedViewsLoading] = useState(true);
+  const [savingView, setSavingView] = useState(false);
+  const [deletingView, setDeletingView] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,6 +106,7 @@ export default function IntelFilesPage() {
 
   useEffect(() => {
     async function loadSavedViews() {
+      setSavedViewsLoading(true);
       try {
         const result = await fetchIntelFileSavedViews();
         if (!result.success || !result.data) {
@@ -112,6 +116,8 @@ export default function IntelFilesPage() {
         setSavedViews(result.data.items);
       } catch (err) {
         setViewMessage(err instanceof Error ? err.message : "Failed to load saved views.");
+      } finally {
+        setSavedViewsLoading(false);
       }
     }
     void loadSavedViews();
@@ -151,6 +157,7 @@ export default function IntelFilesPage() {
       return;
     }
     const filters = currentFilters();
+    setSavingView(true);
     try {
       const result = await saveIntelFileSavedView(name, filters);
       if (!result.success || !result.data) {
@@ -169,6 +176,8 @@ export default function IntelFilesPage() {
       setViewMessage(`Saved shared view: ${name}.`);
     } catch (err) {
       setViewMessage(err instanceof Error ? err.message : "Failed to save view.");
+    } finally {
+      setSavingView(false);
     }
   }
 
@@ -194,6 +203,7 @@ export default function IntelFilesPage() {
       return;
     }
     const view = savedViews.find((item) => item.id === selectedViewId);
+    setDeletingView(true);
     try {
       const result = await deleteIntelFileSavedView(selectedViewId);
       if (!result.success || !result.data) {
@@ -205,6 +215,8 @@ export default function IntelFilesPage() {
       setViewMessage(view ? `Deleted shared view: ${view.name}.` : "Deleted saved view.");
     } catch (err) {
       setViewMessage(err instanceof Error ? err.message : "Failed to delete view.");
+    } finally {
+      setDeletingView(false);
     }
   }
 
@@ -275,9 +287,10 @@ export default function IntelFilesPage() {
           <select
             value={selectedViewId}
             onChange={(event) => applySavedView(event.target.value)}
+            disabled={savedViewsLoading || savingView || deletingView}
             className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
           >
-            <option value="">Select view</option>
+            <option value="">{savedViewsLoading ? "Loading views..." : "Select view"}</option>
             {savedViews.map((view) => (
               <option key={view.id} value={view.id}>
                 {view.name}
@@ -295,6 +308,7 @@ export default function IntelFilesPage() {
                 void saveView();
               }
             }}
+            disabled={savingView || deletingView}
             className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
             placeholder="High opportunity watchlist"
           />
@@ -302,17 +316,18 @@ export default function IntelFilesPage() {
         <button
           type="button"
           onClick={() => void saveView()}
-          className="self-end rounded border border-cyan-500 bg-cyan-500 px-3 py-2 text-sm font-medium text-slate-950"
+          disabled={savingView || deletingView || savedViewsLoading}
+          className="self-end rounded border border-cyan-500 bg-cyan-500 px-3 py-2 text-sm font-medium text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Save View
+          {savingView ? "Saving..." : "Save View"}
         </button>
         <button
           type="button"
           onClick={() => void deleteSavedView()}
-          disabled={!selectedViewId}
+          disabled={!selectedViewId || savingView || deletingView || savedViewsLoading}
           className="self-end rounded border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Delete
+          {deletingView ? "Deleting..." : "Delete"}
         </button>
       </div>
 

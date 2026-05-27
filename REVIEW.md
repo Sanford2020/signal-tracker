@@ -17,12 +17,39 @@ H12 arXiv research source pack completed on 2026-05-26.
 H13 source provider health visibility completed on 2026-05-26.
 H14 workspace-backed shared saved views completed on 2026-05-27.
 H15 provider-specific error attribution completed on 2026-05-27.
+H16 shared saved view mutation states completed on 2026-05-27.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
 The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub Releases/Issues/Commits, RSS, Hacker News, and arXiv source providers, plus known follow-ups for richer commercial UI depth.
+
+## 2026-05-27 H16 Shared Saved View Mutation States Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Added loading state while workspace saved views are fetched.
+- Added saving and deleting states for shared saved view mutations.
+- Disabled saved view controls during active mutations to prevent duplicate submissions.
+- Updated button labels for in-progress save/delete operations.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Frontend type-check: passed.
+- Frontend production build: passed.
+
+### Residual Risks
+
+- Saved views still use name-based upsert. A later UI pass can add explicit rename/update behavior.
 
 ## 2026-05-27 H15 Provider-Specific Error Attribution Review
 
@@ -76,7 +103,7 @@ No blocking findings.
 
 ### Residual Risks
 
-- Saved view mutations do not yet have dedicated loading/disabled UI states.
+- Saved view mutation loading states are now implemented. Rename/update affordances remain a future polish item.
 
 ## 2026-05-26 H13 Source Provider Health Visibility Review
 
