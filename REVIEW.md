@@ -2799,6 +2799,8 @@ git push gitlab main
 
 Owner action: refresh the local GitLab token/credential for the `gitlab` remote, then rerun `git push gitlab main`.
 
+Update: a later GitLab push/`ls-remote` attempt timed out instead of returning the original auth error. Local `main` remains ahead of `gitlab/main`; treat this as owner-only GitLab remote access repair before retrying.
+
 ---
 
 ## TASK-H33 Review — 2026-05-28

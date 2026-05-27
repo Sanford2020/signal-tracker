@@ -6,9 +6,10 @@ Owner action: refresh GitLab remote credentials, deploy Render Blueprint, and ru
 
 ## Current Blockers
 
-- GitLab remote push is blocked by authentication failure for `https://gitlab.com/wangsongfeng1989-group/signal-tracker.git/`.
+- GitLab remote push is blocked by remote access failure for `https://gitlab.com/wangsongfeng1989-group/signal-tracker.git/`.
   - Local `main` is ahead of `gitlab/main`; inspect pending commits with `git log gitlab/main..main --oneline`.
-  - Owner action: update the local GitLab credential/token for the `gitlab` remote, then rerun `git push gitlab main`.
+  - Latest observed failures: `HTTP Basic: Access denied` followed by GitLab push/ls-remote timeouts.
+  - Owner action: update the local GitLab credential/token for the `gitlab` remote, confirm remote access, then rerun `git push gitlab main`.
 - Render Blueprint deployment and hosted smoke test still require owner-only account actions and secrets.
 
 ## Current Status
