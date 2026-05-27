@@ -35,6 +35,8 @@ export type SourceCheckRunListData = {
 export type SourceProviderHealth = {
   source_hint: string;
   enabled_query_count: number;
+  never_checked_count: number;
+  last_checked_at: string | null;
   recent_result_count: number;
   last_result_at: string | null;
   recent_error_count: number;

@@ -136,6 +136,8 @@ def test_api_summarizes_source_provider_health(client: TestClient, db_session: S
     assert data["total"] >= 1
     search_item = next(item for item in data["items"] if item["source_hint"] == "search")
     assert search_item["enabled_query_count"] >= 1
+    assert search_item["never_checked_count"] >= 0
+    assert "last_checked_at" in search_item
     assert search_item["recent_result_count"] >= 1
     assert search_item["last_result_at"] is not None
     assert search_item["recent_error_count"] == 0
@@ -220,6 +222,13 @@ def test_run_source_checks_rotates_to_unchecked_queries(client: TestClient, db_s
     ).all()
     assert len(checked) == 2
     assert all(query.last_checked_at is not None for query in checked)
+
+    health = client.get("/api/v1/source-checks/provider-health?limit=10")
+    assert health.status_code == 200
+    items = health.json()["data"]["items"]
+    assert sum(item["enabled_query_count"] for item in items) >= 2
+    assert sum(item["never_checked_count"] for item in items) <= sum(item["enabled_query_count"] for item in items) - 2
+    assert any(item["last_checked_at"] is not None for item in items)
 
 
 def test_checker_failures_are_recorded(client: TestClient, db_session: Session) -> None:

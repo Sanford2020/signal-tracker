@@ -107,6 +107,9 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
 - H27 source-check query rotation is implemented and validated:
   - Tracking queries now record `last_checked_at` through migration `0018_tracking_query_last_checked`.
   - Source checks prioritize never-checked and oldest-checked queries so later queries are not starved by the oldest created rows.
+- H28 provider health check-rotation visibility is implemented and validated:
+  - Provider health now exposes `never_checked_count` and `last_checked_at` by source hint.
+  - Sources page shows never-checked backlog and last checked time for each provider hint.
 
 ## Goal
 

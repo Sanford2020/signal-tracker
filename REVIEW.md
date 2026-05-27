@@ -29,12 +29,41 @@ H24 hiring source hint coverage completed on 2026-05-27.
 H25 news source hint fallback coverage completed on 2026-05-27.
 H26 specific news-adjacent tracking hints completed on 2026-05-27.
 H27 source-check query rotation completed on 2026-05-27.
+H28 provider health check-rotation visibility completed on 2026-05-27.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
 The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub Releases/Issues/Commits, RSS, Hacker News, and arXiv source providers, plus known follow-ups for richer commercial UI depth.
+
+## 2026-05-27 H28 Provider Health Check-Rotation Visibility Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Provider health responses now include `never_checked_count` by source hint.
+- Provider health responses now include `last_checked_at` by source hint.
+- Sources page displays never-checked backlog and last checked time in Provider Health.
+- Focused coverage verifies rotation metadata is summarized after source checks run.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Focused source check tests: passed.
+- Backend pytest: passed.
+- Frontend type-check: passed.
+- Frontend production build: passed.
+
+### Residual Risks
+
+- Provider health still summarizes by source hint only. Per-query cadence controls remain a future high-volume operations feature.
 
 ## 2026-05-27 H27 Source-Check Query Rotation Review
 

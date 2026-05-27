@@ -161,6 +161,15 @@ def summarize_source_provider_health(
         health_by_hint[source_hint] = SourceProviderHealthRead(
             source_hint=source_hint,
             enabled_query_count=(current.enabled_query_count if current else 0) + 1,
+            never_checked_count=(current.never_checked_count if current else 0) + (1 if query.last_checked_at is None else 0),
+            last_checked_at=max(
+                [
+                    value
+                    for value in [current.last_checked_at if current else None, query.last_checked_at]
+                    if value is not None
+                ],
+                default=None,
+            ),
             recent_result_count=current.recent_result_count if current else 0,
             last_result_at=current.last_result_at if current else None,
             recent_error_count=current.recent_error_count if current else 0,
@@ -190,6 +199,8 @@ def summarize_source_provider_health(
             health_by_hint[source_hint] = SourceProviderHealthRead(
                 source_hint=source_hint,
                 enabled_query_count=current.enabled_query_count if current else 0,
+                never_checked_count=current.never_checked_count if current else 0,
+                last_checked_at=current.last_checked_at if current else None,
                 recent_result_count=(current.recent_result_count if current else 0) + 1,
                 last_result_at=max(
                     [value for value in [current.last_result_at if current else None, result.checked_at] if value is not None]
@@ -232,6 +243,8 @@ def summarize_source_provider_health(
             health_by_hint[source_hint] = SourceProviderHealthRead(
                 source_hint=source_hint,
                 enabled_query_count=current.enabled_query_count if current else 0,
+                never_checked_count=current.never_checked_count if current else 0,
+                last_checked_at=current.last_checked_at if current else None,
                 recent_result_count=current.recent_result_count if current else 0,
                 last_result_at=current.last_result_at if current else None,
                 recent_error_count=(current.recent_error_count if current else 0) + 1,
@@ -246,6 +259,8 @@ def summarize_source_provider_health(
             key: SourceProviderHealthRead(
                 source_hint=item.source_hint,
                 enabled_query_count=item.enabled_query_count,
+                never_checked_count=item.never_checked_count,
+                last_checked_at=item.last_checked_at,
                 recent_result_count=item.recent_result_count,
                 last_result_at=item.last_result_at,
                 recent_error_count=item.recent_error_count,

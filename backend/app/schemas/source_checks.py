@@ -56,6 +56,8 @@ class SourceProviderHealthErrorRead(BaseModel):
 class SourceProviderHealthRead(BaseModel):
     source_hint: str
     enabled_query_count: int
+    never_checked_count: int
+    last_checked_at: datetime | None
     recent_result_count: int
     last_result_at: datetime | None
     recent_error_count: int

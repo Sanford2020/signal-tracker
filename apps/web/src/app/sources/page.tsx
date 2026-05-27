@@ -367,6 +367,8 @@ export default function SourcesPage() {
               <tr>
                 <th className="px-4 py-3">Hint</th>
                 <th className="px-4 py-3">Enabled queries</th>
+                <th className="px-4 py-3">Never checked</th>
+                <th className="px-4 py-3">Last checked</th>
                 <th className="px-4 py-3">Recent results</th>
                 <th className="px-4 py-3">Recent errors</th>
                 <th className="px-4 py-3">Last result</th>
@@ -379,6 +381,10 @@ export default function SourcesPage() {
                 <tr key={item.source_hint} className="bg-slate-950/60">
                   <td className="px-4 py-3 align-top font-medium text-slate-100">{item.source_hint}</td>
                   <td className="px-4 py-3 text-slate-300">{item.enabled_query_count}</td>
+                  <td className={item.never_checked_count > 0 ? "px-4 py-3 text-amber-300" : "px-4 py-3 text-slate-300"}>
+                    {item.never_checked_count}
+                  </td>
+                  <td className="px-4 py-3 text-slate-300">{formatDate(item.last_checked_at)}</td>
                   <td className="px-4 py-3 text-slate-300">{item.recent_result_count}</td>
                   <td className={item.recent_error_count > 0 ? "px-4 py-3 text-amber-300" : "px-4 py-3 text-slate-300"}>
                     {item.recent_error_count}
@@ -408,7 +414,7 @@ export default function SourcesPage() {
               ))}
               {visibleProviderHealth.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-8 text-center text-slate-500" colSpan={7}>
+                  <td className="px-4 py-8 text-center text-slate-500" colSpan={9}>
                     {state.providerHealth.length === 0
                       ? "Generate tracking queries and run source checks to populate provider health."
                       : "No provider health rows match this filter."}
