@@ -9,7 +9,12 @@ from sqlalchemy.orm import Session
 
 from app.models import IntelFile, SourceCheckResult, SourceCheckRun, TrackingQuery
 from app.modules.usage.service import SOURCE_CHECK, assert_usage_available, record_usage
-from app.schemas.source_checks import SourceCheckRunData, SourceCheckRunRequest, SourceProviderHealthRead
+from app.schemas.source_checks import (
+    SourceCheckRunData,
+    SourceCheckRunRequest,
+    SourceProviderHealthErrorRead,
+    SourceProviderHealthRead,
+)
 
 
 @dataclass(frozen=True)
@@ -149,6 +154,7 @@ def summarize_source_provider_health(
             last_result_at=current.last_result_at if current else None,
             recent_error_count=current.recent_error_count if current else 0,
             latest_error=current.latest_error if current else None,
+            recent_errors=list(current.recent_errors) if current else [],
             latest_run_status=current.latest_run_status if current else None,
             latest_run_error=current.latest_run_error if current else None,
         )
@@ -179,6 +185,7 @@ def summarize_source_provider_health(
                 ),
                 recent_error_count=current.recent_error_count if current else 0,
                 latest_error=current.latest_error if current else None,
+                recent_errors=list(current.recent_errors) if current else [],
                 latest_run_status=current.latest_run_status if current else None,
                 latest_run_error=current.latest_run_error if current else None,
             )
@@ -197,14 +204,28 @@ def summarize_source_provider_health(
                 query = db.get(TrackingQuery, query_id)
                 source_hint = query.source_hint if query and query.source_hint else "unknown"
                 query_hints[query_id] = source_hint
+            else:
+                query = db.get(TrackingQuery, query_id)
             current = health_by_hint.get(source_hint)
+            error_text = error_message.strip()
+            recent_errors = list(current.recent_errors) if current else []
+            if query is not None:
+                recent_errors = [
+                    SourceProviderHealthErrorRead(
+                        tracking_query_id=query.id,
+                        query=query.query,
+                        error=error_text,
+                    ),
+                    *recent_errors,
+                ][:5]
             health_by_hint[source_hint] = SourceProviderHealthRead(
                 source_hint=source_hint,
                 enabled_query_count=current.enabled_query_count if current else 0,
                 recent_result_count=current.recent_result_count if current else 0,
                 last_result_at=current.last_result_at if current else None,
                 recent_error_count=(current.recent_error_count if current else 0) + 1,
-                latest_error=(current.latest_error if current and current.latest_error else error_message.strip()),
+                latest_error=(current.latest_error if current and current.latest_error else error_text),
+                recent_errors=recent_errors,
                 latest_run_status=current.latest_run_status if current else None,
                 latest_run_error=current.latest_run_error if current else None,
             )
@@ -218,6 +239,7 @@ def summarize_source_provider_health(
                 last_result_at=item.last_result_at,
                 recent_error_count=item.recent_error_count,
                 latest_error=item.latest_error,
+                recent_errors=list(item.recent_errors),
                 latest_run_status=latest_run.status,
                 latest_run_error=latest_run.error,
             )

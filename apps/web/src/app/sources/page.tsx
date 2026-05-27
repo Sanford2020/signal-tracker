@@ -336,7 +336,7 @@ export default function SourcesPage() {
             <tbody className="divide-y divide-slate-800">
               {state.providerHealth.map((item) => (
                 <tr key={item.source_hint} className="bg-slate-950/60">
-                  <td className="px-4 py-3 font-medium text-slate-100">{item.source_hint}</td>
+                  <td className="px-4 py-3 align-top font-medium text-slate-100">{item.source_hint}</td>
                   <td className="px-4 py-3 text-slate-300">{item.enabled_query_count}</td>
                   <td className="px-4 py-3 text-slate-300">{item.recent_result_count}</td>
                   <td className={item.recent_error_count > 0 ? "px-4 py-3 text-amber-300" : "px-4 py-3 text-slate-300"}>
@@ -344,7 +344,25 @@ export default function SourcesPage() {
                   </td>
                   <td className="px-4 py-3 text-slate-300">{formatDate(item.last_result_at)}</td>
                   <td className="px-4 py-3 text-slate-300">{item.latest_run_status ?? "-"}</td>
-                  <td className="max-w-sm truncate px-4 py-3 text-slate-500">{item.latest_error ?? "-"}</td>
+                  <td className="max-w-md px-4 py-3 text-slate-500">
+                    {item.recent_errors.length > 0 ? (
+                      <details>
+                        <summary className="cursor-pointer truncate text-amber-300">
+                          {item.latest_error ?? "View failed queries"}
+                        </summary>
+                        <div className="mt-2 space-y-2">
+                          {item.recent_errors.map((error) => (
+                            <div key={error.tracking_query_id} className="rounded border border-slate-800 bg-slate-950 p-2">
+                              <div className="truncate text-xs text-slate-300">{error.query}</div>
+                              <div className="mt-1 truncate text-xs text-slate-500">{error.error}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
                 </tr>
               ))}
               {state.providerHealth.length === 0 ? (

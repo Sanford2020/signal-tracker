@@ -39,6 +39,11 @@ export type SourceProviderHealth = {
   last_result_at: string | null;
   recent_error_count: number;
   latest_error: string | null;
+  recent_errors: {
+    tracking_query_id: string;
+    query: string;
+    error: string;
+  }[];
   latest_run_status: string | null;
   latest_run_error: string | null;
 };

@@ -74,6 +74,9 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
 - H16 shared saved view mutation states is implemented and validated:
   - Intel Files saved view loading, saving, and deleting now have explicit UI states.
   - Saved view controls are disabled during mutations to prevent duplicate submissions.
+- H17 provider health failed-query drill-down is implemented and validated:
+  - Provider health API now returns recent failed tracking queries per source hint.
+  - Sources page exposes failed query/error details through expandable provider health rows.
 
 ## Goal
 
@@ -93,5 +96,5 @@ Create the real hosted staging deployment using the prepared Render Blueprint, a
 
 ## Next Implementation Candidates After Staging
 
-- Add provider health filtering or drill-down for failed source-check queries.
 - Add saved view rename/update affordances beyond name-based upsert.
+- Add provider health filtering by errored/active source hints.

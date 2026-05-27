@@ -47,6 +47,12 @@ class SourceCheckRunListData(BaseModel):
     total: int
 
 
+class SourceProviderHealthErrorRead(BaseModel):
+    tracking_query_id: UUID
+    query: str
+    error: str
+
+
 class SourceProviderHealthRead(BaseModel):
     source_hint: str
     enabled_query_count: int
@@ -54,6 +60,7 @@ class SourceProviderHealthRead(BaseModel):
     last_result_at: datetime | None
     recent_error_count: int
     latest_error: str | None
+    recent_errors: list[SourceProviderHealthErrorRead] = Field(default_factory=list)
     latest_run_status: str | None
     latest_run_error: str | None
 
