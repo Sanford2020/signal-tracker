@@ -2784,3 +2784,17 @@ npm run build
 ### Current Next Step
 
 Owner action remains: deploy Render Blueprint and run hosted smoke test. Continue code-side staging usability improvements only when they are clearly higher ROI than the remaining owner-only deploy action.
+
+### Push Status
+
+GitHub push succeeded for `449c173 feat: link provider errors to intel files`.
+
+GitLab push failed because the `gitlab` remote rejected the current local credentials:
+
+```powershell
+git push gitlab main
+# remote: HTTP Basic: Access denied
+# fatal: Authentication failed for 'https://gitlab.com/wangsongfeng1989-group/signal-tracker.git/'
+```
+
+Owner action: refresh the local GitLab token/credential for the `gitlab` remote, then rerun `git push gitlab main`.

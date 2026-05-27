@@ -2,7 +2,14 @@
 
 ## Assignment
 
-Owner action: deploy Render Blueprint and run hosted smoke test.
+Owner action: refresh GitLab remote credentials, deploy Render Blueprint, and run hosted smoke test.
+
+## Current Blockers
+
+- GitLab remote push is blocked by authentication failure for `https://gitlab.com/wangsongfeng1989-group/signal-tracker.git/`.
+  - Latest GitHub-pushed commit: `449c173 feat: link provider errors to intel files`.
+  - Owner action: update the local GitLab credential/token for the `gitlab` remote, then rerun `git push gitlab main`.
+- Render Blueprint deployment and hosted smoke test still require owner-only account actions and secrets.
 
 ## Current Status
 
