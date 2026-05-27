@@ -25,12 +25,38 @@ H20 saved-view default workflow completed on 2026-05-27.
 H21 saved-view usage metadata completed on 2026-05-27.
 H22 PyPI package source pack completed on 2026-05-27.
 H23 package signal tracking-query routing completed on 2026-05-27.
+H24 hiring source hint coverage completed on 2026-05-27.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
 The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub Releases/Issues/Commits, RSS, Hacker News, and arXiv source providers, plus known follow-ups for richer commercial UI depth.
+
+## 2026-05-27 H24 Hiring Source Hint Coverage Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Registered `careers`, `hiring`, and `jobs` source hints to the existing no-key Hacker News provider.
+- Hiring-signal tracking queries generated as `careers` now have a provider path instead of returning no results by registry miss.
+- Added registry coverage for the new hint aliases.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Focused source check tests: passed.
+- Backend pytest: passed.
+
+### Residual Risks
+
+- HN is a broad public signal source, not a dedicated ATS/job-board crawler. A real careers provider can be added once target companies or job-board sources are configured.
 
 ## 2026-05-27 H23 Package Signal Tracking-Query Routing Review
 
