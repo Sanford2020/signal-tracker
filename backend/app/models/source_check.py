@@ -54,3 +54,7 @@ class SourceCheckResult(Base):
     run: Mapped["SourceCheckRun"] = relationship(back_populates="results")
     tracking_query: Mapped["TrackingQuery"] = relationship()
     match_suggestions: Mapped[list["MatchSuggestion"]] = relationship(back_populates="source_check_result")
+
+    @property
+    def intel_file_id(self) -> uuid.UUID:
+        return self.tracking_query.intel_file_id

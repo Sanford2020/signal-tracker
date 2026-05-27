@@ -13,6 +13,7 @@ export type SourceCheckResult = {
   id: string;
   run_id: string;
   tracking_query_id: string;
+  intel_file_id: string;
   title: string;
   url: string | null;
   snippet: string | null;

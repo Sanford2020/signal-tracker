@@ -320,17 +320,32 @@ export default function SourcesPage() {
           <div className="space-y-3">
             {state.latestResults.length > 0 ? (
               state.latestResults.map((result) => (
-                <a
+                <div
                   key={result.id}
-                  href={result.url ?? "#"}
-                  target={result.url ? "_blank" : undefined}
-                  rel="noreferrer"
                   className="block rounded border border-slate-800 bg-slate-900/40 p-4 hover:bg-slate-900"
                 >
                   <div className="text-sm font-medium text-slate-100">{result.title}</div>
                   <div className="mt-1 text-xs text-cyan-300">{result.source_name ?? result.source_hint ?? "source"}</div>
                   {result.snippet ? <p className="mt-2 line-clamp-3 text-xs leading-5 text-slate-400">{result.snippet}</p> : null}
-                </a>
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    <Link
+                      href={`/intel-files/${result.intel_file_id}`}
+                      className="text-xs font-medium text-cyan-300 hover:text-cyan-200"
+                    >
+                      Open file
+                    </Link>
+                    {result.url ? (
+                      <a
+                        href={result.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-medium text-slate-400 hover:text-cyan-200"
+                      >
+                        Open source
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
               ))
             ) : (
               <div className="rounded border border-slate-800 bg-slate-900/40 p-4 text-sm text-slate-500">

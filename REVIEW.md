@@ -2798,3 +2798,35 @@ git push gitlab main
 ```
 
 Owner action: refresh the local GitLab token/credential for the `gitlab` remote, then rerun `git push gitlab main`.
+
+---
+
+## TASK-H33 Review — 2026-05-28
+
+### Verdict
+
+`APPROVE`
+
+Source-check result navigation is implemented. Source-check result responses now expose the affected `intel_file_id`, and the Sources page latest-result cards separate `Open file` from `Open source`, letting operators jump directly from a fresh provider result into the tracked Intel File.
+
+### Validation
+
+Passed:
+
+```powershell
+pytest backend/tests/test_source_checks.py -q
+# 23 passed
+
+npm run type-check
+# passed
+
+pytest backend/tests -q
+# 176 passed
+
+npm run build
+# passed
+```
+
+### Current Next Step
+
+Owner action remains: refresh GitLab remote credentials, deploy Render Blueprint, and run hosted smoke test. GitHub remains the up-to-date pushed remote until GitLab credentials are repaired.

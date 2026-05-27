@@ -13,6 +13,7 @@ class SourceCheckResultRead(BaseModel):
     id: UUID
     run_id: UUID
     tracking_query_id: UUID
+    intel_file_id: UUID
     title: str
     url: str | None
     snippet: str | None

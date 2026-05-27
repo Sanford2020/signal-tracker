@@ -7,7 +7,7 @@ Owner action: refresh GitLab remote credentials, deploy Render Blueprint, and ru
 ## Current Blockers
 
 - GitLab remote push is blocked by authentication failure for `https://gitlab.com/wangsongfeng1989-group/signal-tracker.git/`.
-  - Latest GitHub-pushed commit: `449c173 feat: link provider errors to intel files`.
+  - Local `main` is ahead of `gitlab/main`; inspect pending commits with `git log gitlab/main..main --oneline`.
   - Owner action: update the local GitLab credential/token for the `gitlab` remote, then rerun `git push gitlab main`.
 - Render Blueprint deployment and hosted smoke test still require owner-only account actions and secrets.
 
@@ -131,6 +131,9 @@ Owner action: refresh GitLab remote credentials, deploy Render Blueprint, and ru
 - H32 provider health failed-query navigation is implemented and validated:
   - Provider health failed-query rows now include `intel_file_id`.
   - Sources page failed-query drill-downs now link directly to the affected Intel File.
+- H33 source-check result navigation is implemented and validated:
+  - Source-check result API payloads now expose `intel_file_id` derived from the tracking query.
+  - Sources page latest-result cards now have separate `Open file` and `Open source` actions.
 
 ## Goal
 

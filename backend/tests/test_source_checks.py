@@ -183,6 +183,7 @@ def test_run_source_checks_persists_results(client: TestClient, db_session: Sess
     assert data.run.result_count == 2
     assert len(data.results) == 2
     assert len(checker.seen) == 2
+    assert data.results[0].intel_file_id is not None
     persisted = db_session.scalars(select(SourceCheckResult)).all()
     assert len(persisted) == 2
     assert persisted[0].source_name == "example-search"
