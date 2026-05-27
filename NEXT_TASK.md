@@ -68,6 +68,9 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
   - Intel File saved views are persisted by workspace through `0015_intel_file_saved_views`.
   - Analysts can save, apply, and delete shared Intel File views from the workbench.
   - Saved views are scoped by workspace and no longer depend on browser localStorage.
+- H15 provider-specific error attribution is implemented and validated:
+  - Source provider health now attributes recent failures back to each failed query's `source_hint`.
+  - Sources page shows recent error counts and latest provider-level error by hint.
 
 ## Goal
 
@@ -87,5 +90,5 @@ Create the real hosted staging deployment using the prepared Render Blueprint, a
 
 ## Next Implementation Candidates After Staging
 
-- Add provider-specific error attribution for failed source-check queries.
 - Add UI loading/disabled states for shared saved view mutations.
+- Add provider health filtering or drill-down for failed source-check queries.

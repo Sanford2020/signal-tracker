@@ -16,12 +16,40 @@ H11 GitHub activity source pack completed on 2026-05-26.
 H12 arXiv research source pack completed on 2026-05-26.
 H13 source provider health visibility completed on 2026-05-26.
 H14 workspace-backed shared saved views completed on 2026-05-27.
+H15 provider-specific error attribution completed on 2026-05-27.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
 The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub Releases/Issues/Commits, RSS, Hacker News, and arXiv source providers, plus known follow-ups for richer commercial UI depth.
+
+## 2026-05-27 H15 Provider-Specific Error Attribution Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Source provider health now parses failed source-check query ids from run errors.
+- Failed queries are mapped back to their `source_hint`.
+- Provider health responses include `recent_error_count` and `latest_error`.
+- Sources page shows recent provider errors and latest provider-level error by hint.
+- Added backend coverage for provider-specific error attribution.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Focused source check tests: passed.
+- Frontend type-check: passed.
+
+### Residual Risks
+
+- Error drill-down is still summarized at provider-hint level; a future detail view can expose individual failed query titles.
 
 ## 2026-05-27 H14 Workspace-Backed Shared Saved Views Review
 
@@ -74,7 +102,7 @@ No blocking findings.
 
 ### Residual Risks
 
-- Failed source-check errors are still recorded at run level. Provider-specific failed-query attribution remains a future improvement.
+- Provider-specific errors are now summarized by source hint; individual failed-query drill-down remains a future improvement.
 
 ## 2026-05-26 H12 arXiv Research Source Pack Review
 

@@ -137,8 +137,32 @@ def test_api_summarizes_source_provider_health(client: TestClient, db_session: S
     assert search_item["enabled_query_count"] >= 1
     assert search_item["recent_result_count"] >= 1
     assert search_item["last_result_at"] is not None
+    assert search_item["recent_error_count"] == 0
+    assert search_item["latest_error"] is None
     assert search_item["latest_run_status"] == "completed"
     assert search_item["latest_run_error"] is None
+
+
+def test_provider_health_attributes_errors_to_source_hint(client: TestClient, db_session: Session) -> None:
+    _create_tracking_queries(client)
+    queries = db_session.scalars(select(TrackingQuery)).all()
+    assert queries
+    for query in queries:
+        query.source_hint = "research"
+    db_session.commit()
+    run_source_checks(db_session, SourceCheckRunRequest(limit=1), checker=FailingChecker())
+
+    response = client.get("/api/v1/source-checks/provider-health?limit=10")
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    research_item = next(item for item in data["items"] if item["source_hint"] == "research")
+    assert research_item["enabled_query_count"] >= 1
+    assert research_item["recent_result_count"] == 0
+    assert research_item["recent_error_count"] == 1
+    assert research_item["latest_error"] == "provider unavailable"
+    assert research_item["latest_run_status"] == "failed"
+    assert "provider unavailable" in research_item["latest_run_error"]
 
 
 def test_run_source_checks_persists_results(client: TestClient, db_session: Session) -> None:

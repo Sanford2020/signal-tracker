@@ -147,6 +147,8 @@ def summarize_source_provider_health(
             enabled_query_count=(current.enabled_query_count if current else 0) + 1,
             recent_result_count=current.recent_result_count if current else 0,
             last_result_at=current.last_result_at if current else None,
+            recent_error_count=current.recent_error_count if current else 0,
+            latest_error=current.latest_error if current else None,
             latest_run_status=current.latest_run_status if current else None,
             latest_run_error=current.latest_run_error if current else None,
         )
@@ -157,6 +159,7 @@ def summarize_source_provider_health(
     runs = list(db.scalars(run_stmt).all())
     latest_run = runs[0] if runs else None
     run_ids = [run.id for run in runs]
+    query_hints = {query.id: query.source_hint or "unknown" for query in queries}
 
     if run_ids:
         results = db.scalars(
@@ -174,6 +177,34 @@ def summarize_source_provider_health(
                 last_result_at=max(
                     [value for value in [current.last_result_at if current else None, result.checked_at] if value is not None]
                 ),
+                recent_error_count=current.recent_error_count if current else 0,
+                latest_error=current.latest_error if current else None,
+                latest_run_status=current.latest_run_status if current else None,
+                latest_run_error=current.latest_run_error if current else None,
+            )
+
+    for run in runs:
+        for line in (run.error or "").splitlines():
+            query_id_text, separator, error_message = line.partition(":")
+            if not separator:
+                continue
+            try:
+                query_id = UUID(query_id_text.strip())
+            except ValueError:
+                continue
+            source_hint = query_hints.get(query_id)
+            if source_hint is None:
+                query = db.get(TrackingQuery, query_id)
+                source_hint = query.source_hint if query and query.source_hint else "unknown"
+                query_hints[query_id] = source_hint
+            current = health_by_hint.get(source_hint)
+            health_by_hint[source_hint] = SourceProviderHealthRead(
+                source_hint=source_hint,
+                enabled_query_count=current.enabled_query_count if current else 0,
+                recent_result_count=current.recent_result_count if current else 0,
+                last_result_at=current.last_result_at if current else None,
+                recent_error_count=(current.recent_error_count if current else 0) + 1,
+                latest_error=(current.latest_error if current and current.latest_error else error_message.strip()),
                 latest_run_status=current.latest_run_status if current else None,
                 latest_run_error=current.latest_run_error if current else None,
             )
@@ -185,6 +216,8 @@ def summarize_source_provider_health(
                 enabled_query_count=item.enabled_query_count,
                 recent_result_count=item.recent_result_count,
                 last_result_at=item.last_result_at,
+                recent_error_count=item.recent_error_count,
+                latest_error=item.latest_error,
                 latest_run_status=latest_run.status,
                 latest_run_error=latest_run.error,
             )
@@ -193,5 +226,5 @@ def summarize_source_provider_health(
 
     return sorted(
         health_by_hint.values(),
-        key=lambda item: (item.enabled_query_count == 0, -item.recent_result_count, item.source_hint),
+        key=lambda item: (item.enabled_query_count == 0, -item.recent_error_count, -item.recent_result_count, item.source_hint),
     )

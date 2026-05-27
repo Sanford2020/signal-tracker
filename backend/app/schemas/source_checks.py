@@ -52,6 +52,8 @@ class SourceProviderHealthRead(BaseModel):
     enabled_query_count: int
     recent_result_count: int
     last_result_at: datetime | None
+    recent_error_count: int
+    latest_error: str | None
     latest_run_status: str | None
     latest_run_error: str | None
 

@@ -327,9 +327,10 @@ export default function SourcesPage() {
                 <th className="px-4 py-3">Hint</th>
                 <th className="px-4 py-3">Enabled queries</th>
                 <th className="px-4 py-3">Recent results</th>
+                <th className="px-4 py-3">Recent errors</th>
                 <th className="px-4 py-3">Last result</th>
                 <th className="px-4 py-3">Latest run</th>
-                <th className="px-4 py-3">Last error</th>
+                <th className="px-4 py-3">Provider error</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
@@ -338,14 +339,17 @@ export default function SourcesPage() {
                   <td className="px-4 py-3 font-medium text-slate-100">{item.source_hint}</td>
                   <td className="px-4 py-3 text-slate-300">{item.enabled_query_count}</td>
                   <td className="px-4 py-3 text-slate-300">{item.recent_result_count}</td>
+                  <td className={item.recent_error_count > 0 ? "px-4 py-3 text-amber-300" : "px-4 py-3 text-slate-300"}>
+                    {item.recent_error_count}
+                  </td>
                   <td className="px-4 py-3 text-slate-300">{formatDate(item.last_result_at)}</td>
                   <td className="px-4 py-3 text-slate-300">{item.latest_run_status ?? "-"}</td>
-                  <td className="max-w-sm truncate px-4 py-3 text-slate-500">{item.latest_run_error ?? "-"}</td>
+                  <td className="max-w-sm truncate px-4 py-3 text-slate-500">{item.latest_error ?? "-"}</td>
                 </tr>
               ))}
               {state.providerHealth.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-8 text-center text-slate-500" colSpan={6}>
+                  <td className="px-4 py-8 text-center text-slate-500" colSpan={7}>
                     Generate tracking queries and run source checks to populate provider health.
                   </td>
                 </tr>
