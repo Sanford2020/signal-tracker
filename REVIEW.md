@@ -23,12 +23,39 @@ H18 provider health filtering completed on 2026-05-27.
 H19 saved view rename/update affordances completed on 2026-05-27.
 H20 saved-view default workflow completed on 2026-05-27.
 H21 saved-view usage metadata completed on 2026-05-27.
+H22 PyPI package source pack completed on 2026-05-27.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
 The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub Releases/Issues/Commits, RSS, Hacker News, and arXiv source providers, plus known follow-ups for richer commercial UI depth.
+
+## 2026-05-27 H22 PyPI Package Source Pack Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Added a no-key PyPI package provider using public package JSON metadata.
+- Registered `package`, `pypi`, `python_package`, and `sdk` source hints.
+- Added provider settings to development and production env templates.
+- Added deterministic tests for package release results, missing package handling, and registry wiring.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Focused source check tests: passed.
+- Backend pytest: passed.
+
+### Residual Risks
+
+- PyPI provider intentionally checks package-shaped query tokens only; broader package discovery should be added after staging usage shows the need.
 
 ## 2026-05-27 H21 Saved View Usage Metadata Review
 

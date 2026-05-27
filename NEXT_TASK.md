@@ -89,6 +89,9 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
 - H21 saved-view usage metadata is implemented and validated:
   - Saved views now support descriptions and last-used timestamps via migration `0017_saved_view_usage_metadata`.
   - Intel Files workbench records last-used time when a shared view is applied and shows owner/description usage context.
+- H22 PyPI package source pack is implemented and validated:
+  - `package`, `pypi`, `python_package`, and `sdk` source hints now check public PyPI package metadata without credentials.
+  - PyPI provider settings are documented in development and production env templates.
 
 ## Goal
 
@@ -109,3 +112,4 @@ Create the real hosted staging deployment using the prepared Render Blueprint, a
 ## Next Implementation Candidates After Staging
 
 - Add per-user saved view preferences after real hosted auth is selected.
+- Add additional no-key source packs only after observed staging usage shows a clear gap.

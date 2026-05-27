@@ -568,6 +568,117 @@ class HackerNewsProvider:
             return client.get(path, params=params, headers=headers)
 
 
+class PyPIPackageProvider:
+    """Check PyPI package metadata for recent Python package release signals."""
+
+    api_base_url = "https://pypi.org"
+    package_pattern = re.compile(r"(?<![\w.-])([A-Za-z0-9][A-Za-z0-9_.-]{1,80})(?![\w.-])")
+    stopwords = {
+        "about",
+        "agent",
+        "agents",
+        "check",
+        "follow",
+        "latest",
+        "package",
+        "packages",
+        "python",
+        "release",
+        "releases",
+        "sdk",
+        "track",
+        "update",
+        "watch",
+    }
+
+    def __init__(
+        self,
+        *,
+        client: httpx.Client | None = None,
+        max_packages: int = 5,
+        timeout_seconds: float = 10.0,
+    ) -> None:
+        self.client = client
+        self.max_packages = max(1, min(max_packages, 20))
+        self.timeout_seconds = timeout_seconds
+
+    def search(self, query: TrackingQuery) -> Sequence[CheckerResult]:
+        results: list[CheckerResult] = []
+        for package_name in self._package_names_for_query(query.query):
+            payload = self._package_json(package_name)
+            if payload is None:
+                continue
+            result = self._result_from_payload(package_name, payload)
+            if result is not None:
+                results.append(result)
+        return results
+
+    def _request(self, package_name: str) -> httpx.Response:
+        headers = {"User-Agent": "signal-tracker-pypi-provider"}
+        path = f"/pypi/{package_name}/json"
+        if self.client is not None:
+            return self.client.get(path, headers=headers)
+        with httpx.Client(base_url=self.api_base_url, timeout=self.timeout_seconds) as client:
+            return client.get(path, headers=headers)
+
+    def _package_names_for_query(self, query: str) -> list[str]:
+        seen: set[str] = set()
+        names: list[str] = []
+        for match in self.package_pattern.finditer(query):
+            name = match.group(1).strip("._-").lower()
+            if not name or name in self.stopwords or name in seen:
+                continue
+            seen.add(name)
+            names.append(name)
+            if len(names) >= self.max_packages:
+                break
+        return names
+
+    def _package_json(self, package_name: str) -> dict | None:
+        response = self._request(package_name)
+        if response.status_code == 404:
+            return None
+        response.raise_for_status()
+        payload = response.json()
+        return payload if isinstance(payload, dict) else None
+
+    def _result_from_payload(self, package_name: str, payload: dict) -> CheckerResult | None:
+        info = payload.get("info") if isinstance(payload.get("info"), dict) else {}
+        version = info.get("version")
+        if not isinstance(version, str) or not version:
+            return None
+
+        project_name = str(info.get("name") or package_name)
+        summary = info.get("summary")
+        project_url = info.get("project_url")
+        if not isinstance(project_url, str) or not project_url:
+            project_url = f"https://pypi.org/project/{project_name}/"
+
+        release_files = []
+        releases = payload.get("releases")
+        if isinstance(releases, dict):
+            maybe_files = releases.get(version)
+            if isinstance(maybe_files, list):
+                release_files = [item for item in maybe_files if isinstance(item, dict)]
+
+        upload_time = None
+        if release_files:
+            upload_time = release_files[0].get("upload_time_iso_8601") or release_files[0].get("upload_time")
+
+        return CheckerResult(
+            title=f"{project_name} {version} released on PyPI",
+            url=project_url,
+            snippet=str(summary)[:500] if summary else None,
+            source_name="pypi",
+            raw={
+                "provider": "pypi",
+                "package": project_name,
+                "version": version,
+                "upload_time": upload_time,
+            },
+        )
+
+
 def get_default_provider_registry() -> SourceProviderRegistry:
     settings = get_settings()
     github_provider = GitHubReleasesProvider(
@@ -610,6 +721,10 @@ def get_default_provider_registry() -> SourceProviderRegistry:
         timeout_seconds=settings.hacker_news_provider_timeout_seconds,
         tags=settings.hacker_news_provider_tags,
     )
+    pypi_provider = PyPIPackageProvider(
+        max_packages=settings.pypi_provider_max_packages,
+        timeout_seconds=settings.pypi_provider_timeout_seconds,
+    )
     return SourceProviderRegistry(
         {
             "github": CompositeSourceProvider([github_provider, github_activity_provider]),
@@ -626,6 +741,10 @@ def get_default_provider_registry() -> SourceProviderRegistry:
             "search": hacker_news_provider,
             "hacker_news": hacker_news_provider,
             "hn": hacker_news_provider,
+            "package": pypi_provider,
+            "pypi": pypi_provider,
+            "python_package": pypi_provider,
+            "sdk": pypi_provider,
             "social": hacker_news_provider,
         }
     )

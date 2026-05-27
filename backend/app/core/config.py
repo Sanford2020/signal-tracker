@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     hacker_news_provider_max_hits: int = 10
     hacker_news_provider_timeout_seconds: float = 10.0
     hacker_news_provider_tags: str = "story"
+    pypi_provider_max_packages: int = 5
+    pypi_provider_timeout_seconds: float = 10.0
 
     alert_opportunity_threshold: float = 7.0
     alert_credibility_increase_min: float = 2.0

@@ -18,6 +18,7 @@ from app.modules.source_checks.providers import (
     GitHubReleasesProvider,
     HackerNewsProvider,
     ProviderBackedSourceChecker,
+    PyPIPackageProvider,
     RssFeedProvider,
     SourceProviderRegistry,
     get_default_provider_registry,
@@ -703,6 +704,75 @@ def test_hacker_news_provider_returns_search_hits() -> None:
     }
 
 
+def test_pypi_provider_returns_latest_package_release() -> None:
+    seen_paths: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_paths.append(request.url.path)
+        if request.url.path == "/pypi/openai/json":
+            return httpx.Response(
+                200,
+                json={
+                    "info": {
+                        "name": "openai",
+                        "version": "2.1.0",
+                        "summary": "OpenAI Python API library",
+                        "project_url": "https://pypi.org/project/openai/",
+                    },
+                    "releases": {
+                        "2.1.0": [
+                            {
+                                "upload_time_iso_8601": "2026-05-26T01:00:00.000000Z",
+                            }
+                        ]
+                    },
+                },
+            )
+        return httpx.Response(404)
+
+    client = httpx.Client(
+        base_url="https://pypi.org",
+        transport=httpx.MockTransport(handler),
+    )
+    provider = PyPIPackageProvider(client=client, max_packages=2)
+    query = TrackingQuery(
+        intel_file_id=uuid4(),
+        query="watch openai python package release",
+        normalized_query="watch openai python package release",
+        source_hint="pypi",
+    )
+
+    results = provider.search(query)
+
+    assert seen_paths == ["/pypi/openai/json"]
+    assert len(results) == 1
+    assert results[0].title == "openai 2.1.0 released on PyPI"
+    assert results[0].url == "https://pypi.org/project/openai/"
+    assert results[0].source_name == "pypi"
+    assert results[0].raw == {
+        "provider": "pypi",
+        "package": "openai",
+        "version": "2.1.0",
+        "upload_time": "2026-05-26T01:00:00.000000Z",
+    }
+
+
+def test_pypi_provider_skips_missing_packages() -> None:
+    client = httpx.Client(
+        base_url="https://pypi.org",
+        transport=httpx.MockTransport(lambda _: httpx.Response(404)),
+    )
+    provider = PyPIPackageProvider(client=client, max_packages=2)
+    query = TrackingQuery(
+        intel_file_id=uuid4(),
+        query="watch unknown-package release",
+        normalized_query="watch unknown-package release",
+        source_hint="python_package",
+    )
+
+    assert provider.search(query) == []
+
+
 def test_default_provider_registry_routes_search_to_hacker_news() -> None:
     registry = get_default_provider_registry()
 
@@ -718,4 +788,8 @@ def test_default_provider_registry_routes_search_to_hacker_news() -> None:
     assert isinstance(registry.get("search"), HackerNewsProvider)
     assert isinstance(registry.get("hacker_news"), HackerNewsProvider)
     assert isinstance(registry.get("hn"), HackerNewsProvider)
+    assert isinstance(registry.get("package"), PyPIPackageProvider)
+    assert isinstance(registry.get("pypi"), PyPIPackageProvider)
+    assert isinstance(registry.get("python_package"), PyPIPackageProvider)
+    assert isinstance(registry.get("sdk"), PyPIPackageProvider)
     assert isinstance(registry.get("social"), HackerNewsProvider)
