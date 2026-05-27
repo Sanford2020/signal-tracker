@@ -72,6 +72,11 @@ export type IntelFileSavedViewDeleteData = {
   deleted_id: string;
 };
 
+export type IntelFileSavedViewUpdateRequest = {
+  name?: string;
+  filters?: IntelFileSavedViewFilters;
+};
+
 export type EvidenceSummary = {
   id: string;
   intel_file_id: string;

@@ -31,6 +31,7 @@ import type {
   IntelFileSavedViewDeleteData,
   IntelFileSavedViewFilters,
   IntelFileSavedViewListData,
+  IntelFileSavedViewUpdateRequest,
   MatchSuggestionAcceptData,
   MatchSuggestionGenerateData,
   MatchSuggestionListData,
@@ -161,6 +162,13 @@ export async function saveIntelFileSavedView(name: string, filters: IntelFileSav
 export async function deleteIntelFileSavedView(viewId: string) {
   return request<IntelFileSavedViewDeleteData>(`/api/v1/intel-file-saved-views/${viewId}`, {
     method: "DELETE",
+  });
+}
+
+export async function updateIntelFileSavedView(viewId: string, body: IntelFileSavedViewUpdateRequest) {
+  return request<IntelFileSavedViewData>(`/api/v1/intel-file-saved-views/${viewId}`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
   });
 }
 

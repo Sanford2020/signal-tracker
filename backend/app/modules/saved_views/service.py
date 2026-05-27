@@ -11,6 +11,7 @@ from app.schemas.saved_views import (
     IntelFileSavedViewDeleteData,
     IntelFileSavedViewListData,
     IntelFileSavedViewRead,
+    IntelFileSavedViewUpdateRequest,
 )
 
 _SLUG_RE = re.compile(r"[^a-z0-9]+")
@@ -64,6 +65,49 @@ def upsert_intel_file_saved_view(
         view.filters = payload.filters.model_dump()
         if actor_email:
             view.created_by_email = actor_email.strip().lower()
+    db.commit()
+    db.refresh(view)
+    return IntelFileSavedViewData(item=_to_read(view))
+
+
+def update_intel_file_saved_view(
+    db: Session,
+    view_id: UUID,
+    payload: IntelFileSavedViewUpdateRequest,
+    *,
+    workspace_id: UUID | None = None,
+    actor_email: str | None = None,
+) -> IntelFileSavedViewData:
+    view = db.scalar(
+        select(IntelFileSavedView).where(
+            IntelFileSavedView.id == view_id,
+            IntelFileSavedView.workspace_id == workspace_id,
+        )
+    )
+    if view is None:
+        raise ValueError("Saved view not found.")
+
+    if payload.name is not None:
+        name = payload.name.strip()
+        slug = _slugify(name)
+        existing = db.scalar(
+            select(IntelFileSavedView).where(
+                IntelFileSavedView.workspace_id == workspace_id,
+                IntelFileSavedView.slug == slug,
+                IntelFileSavedView.id != view_id,
+            )
+        )
+        if existing is not None:
+            raise ValueError("Saved view name already exists.")
+        view.name = name
+        view.slug = slug
+
+    if payload.filters is not None:
+        view.filters = payload.filters.model_dump()
+
+    if actor_email:
+        view.created_by_email = actor_email.strip().lower()
+
     db.commit()
     db.refresh(view)
     return IntelFileSavedViewData(item=_to_read(view))

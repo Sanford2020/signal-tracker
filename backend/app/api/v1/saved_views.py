@@ -8,6 +8,7 @@ from app.db.session import get_db
 from app.modules.saved_views.service import (
     delete_intel_file_saved_view,
     list_intel_file_saved_views,
+    update_intel_file_saved_view,
     upsert_intel_file_saved_view,
 )
 from app.schemas.api import ApiResponse
@@ -16,6 +17,7 @@ from app.schemas.saved_views import (
     IntelFileSavedViewData,
     IntelFileSavedViewDeleteData,
     IntelFileSavedViewListData,
+    IntelFileSavedViewUpdateRequest,
 )
 
 router = APIRouter(prefix="/intel-file-saved-views", tags=["intel-file-saved-views"])
@@ -48,6 +50,30 @@ def upsert_intel_file_saved_view_route(
         workspace_id=x_workspace_id,
         actor_email=x_user_email,
     )
+    return ApiResponse(success=True, data=data, error=None)
+
+
+@router.patch("/{view_id}", response_model=ApiResponse[IntelFileSavedViewData])
+def update_intel_file_saved_view_route(
+    view_id: UUID,
+    payload: IntelFileSavedViewUpdateRequest,
+    x_workspace_id: UUID | None = Header(None, alias="X-Workspace-Id"),
+    x_user_email: str | None = Header(None, alias="X-User-Email"),
+    x_user_token: str | None = Header(None, alias="X-User-Token"),
+    db: Session = Depends(get_db),
+) -> ApiResponse[IntelFileSavedViewData]:
+    try:
+        require_workspace_access(db, x_workspace_id, x_user_email, x_user_token)
+        data = update_intel_file_saved_view(
+            db,
+            view_id,
+            payload,
+            workspace_id=x_workspace_id,
+            actor_email=x_user_email,
+        )
+    except ValueError as exc:
+        status_code = 409 if "already exists" in str(exc) else 404
+        raise HTTPException(status_code=status_code, detail=str(exc)) from exc
     return ApiResponse(success=True, data=data, error=None)
 
 

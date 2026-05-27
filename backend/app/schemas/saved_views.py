@@ -20,6 +20,11 @@ class IntelFileSavedViewCreateRequest(BaseModel):
     filters: IntelFileSavedViewFilters
 
 
+class IntelFileSavedViewUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    filters: IntelFileSavedViewFilters | None = None
+
+
 class IntelFileSavedViewRead(BaseModel):
     id: UUID
     workspace_id: UUID | None

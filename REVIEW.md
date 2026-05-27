@@ -20,12 +20,40 @@ H15 provider-specific error attribution completed on 2026-05-27.
 H16 shared saved view mutation states completed on 2026-05-27.
 H17 provider health failed-query drill-down completed on 2026-05-27.
 H18 provider health filtering completed on 2026-05-27.
+H19 saved view rename/update affordances completed on 2026-05-27.
 
 ## Verdict
 
 `APPROVE_FOR_HOSTED_STAGING_WITH_WORKSPACE_ISOLATION`
 
 The repository is ready for hosted staging deployment, with workspace-scoped commercial routes, reproducible report dependencies, GitHub Releases/Issues/Commits, RSS, Hacker News, and arXiv source providers, plus known follow-ups for richer commercial UI depth.
+
+## 2026-05-27 H19 Saved View Rename/Update Review
+
+### Verdict
+
+`APPROVE`
+
+### Scope Reviewed
+
+- Added `PATCH /api/v1/intel-file-saved-views/{view_id}` for workspace-scoped saved view updates.
+- Saved view updates can rename by id and replace filters without relying on name-based upsert.
+- Rename conflicts within the same workspace return `409`.
+- Intel Files workbench now supports updating the selected shared view from the current filters.
+
+### Findings
+
+No blocking findings.
+
+### Verified
+
+- Focused saved view tests: passed.
+- Frontend type-check: passed.
+- Frontend production build: passed.
+
+### Residual Risks
+
+- Default/pinned saved views remain a future analyst workflow improvement.
 
 ## 2026-05-27 H18 Provider Health Filtering Review
 

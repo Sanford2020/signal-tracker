@@ -80,6 +80,9 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
 - H18 provider health filtering is implemented and validated:
   - Sources page can filter provider health by all, erroring, active, and active-with-no-results source hints.
   - Provider hint metrics now show visible versus total provider health rows.
+- H19 saved view rename/update affordances are implemented and validated:
+  - Saved views can be patched by id through the v1 API without relying on name-based upsert.
+  - Intel Files workbench can rename and update the selected shared view with current filters.
 
 ## Goal
 
@@ -99,5 +102,4 @@ Create the real hosted staging deployment using the prepared Render Blueprint, a
 
 ## Next Implementation Candidates After Staging
 
-- Add saved view rename/update affordances beyond name-based upsert.
 - Add saved-view default/pinned-view support for recurring analyst workflows.

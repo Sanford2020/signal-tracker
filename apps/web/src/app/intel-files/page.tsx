@@ -8,6 +8,7 @@ import {
   fetchIntelFiles,
   fetchIntelFileSavedViews,
   saveIntelFileSavedView,
+  updateIntelFileSavedView,
 } from "@/lib/api";
 import type { IntelFileSavedView, IntelFileSavedViewFilters, IntelFileSummary } from "@/types/intel-files";
 
@@ -65,6 +66,7 @@ export default function IntelFilesPage() {
   const [viewMessage, setViewMessage] = useState<string | null>(null);
   const [savedViewsLoading, setSavedViewsLoading] = useState(true);
   const [savingView, setSavingView] = useState(false);
+  const [updatingView, setUpdatingView] = useState(false);
   const [deletingView, setDeletingView] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -137,6 +139,7 @@ export default function IntelFilesPage() {
     setSort("updated_at");
     setOrder("desc");
     setSelectedViewId("");
+    setViewName("");
     setViewMessage(null);
   }
 
@@ -181,13 +184,50 @@ export default function IntelFilesPage() {
     }
   }
 
+  async function updateSelectedView() {
+    if (!selectedViewId) {
+      return;
+    }
+    const selectedView = savedViews.find((item) => item.id === selectedViewId);
+    const name = viewName.trim() || selectedView?.name;
+    if (!name) {
+      setViewMessage("Name the view before updating.");
+      return;
+    }
+    const filters = currentFilters();
+    setUpdatingView(true);
+    try {
+      const result = await updateIntelFileSavedView(selectedViewId, { name, filters });
+      if (!result.success || !result.data) {
+        setViewMessage(result.error?.message ?? "Failed to update view.");
+        return;
+      }
+      const updatedView = result.data.item;
+      setSavedViews((views) => [
+        updatedView,
+        ...views.filter((item) => item.id !== updatedView.id),
+      ]);
+      setSelectedViewId(updatedView.id);
+      setViewName(updatedView.name);
+      setPage(1);
+      setAppliedQuery(filters.query);
+      setViewMessage(`Updated shared view: ${updatedView.name}.`);
+    } catch (err) {
+      setViewMessage(err instanceof Error ? err.message : "Failed to update view.");
+    } finally {
+      setUpdatingView(false);
+    }
+  }
+
   function applySavedView(viewId: string) {
     const view = savedViews.find((item) => item.id === viewId);
     if (!view) {
       setSelectedViewId("");
+      setViewName("");
       return;
     }
     setSelectedViewId(view.id);
+    setViewName(view.name);
     setQuery(view.filters.query);
     setAppliedQuery(view.filters.query);
     setStatus(view.filters.status);
@@ -212,6 +252,7 @@ export default function IntelFilesPage() {
       }
       setSavedViews((views) => views.filter((item) => item.id !== selectedViewId));
       setSelectedViewId("");
+      setViewName("");
       setViewMessage(view ? `Deleted shared view: ${view.name}.` : "Deleted saved view.");
     } catch (err) {
       setViewMessage(err instanceof Error ? err.message : "Failed to delete view.");
@@ -281,13 +322,13 @@ export default function IntelFilesPage() {
         </button>
       </div>
 
-      <div className="grid gap-3 rounded border border-slate-800 bg-slate-900/40 p-4 lg:grid-cols-[1fr_1.2fr_auto_auto]">
+      <div className="grid gap-3 rounded border border-slate-800 bg-slate-900/40 p-4 lg:grid-cols-[1fr_1.2fr_auto_auto_auto]">
         <label className="space-y-1">
           <span className="text-xs uppercase text-slate-500">Saved views</span>
           <select
             value={selectedViewId}
             onChange={(event) => applySavedView(event.target.value)}
-            disabled={savedViewsLoading || savingView || deletingView}
+            disabled={savedViewsLoading || savingView || updatingView || deletingView}
             className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
           >
             <option value="">{savedViewsLoading ? "Loading views..." : "Select view"}</option>
@@ -305,10 +346,14 @@ export default function IntelFilesPage() {
             onChange={(event) => setViewName(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
-                void saveView();
+                if (selectedViewId) {
+                  void updateSelectedView();
+                } else {
+                  void saveView();
+                }
               }
             }}
-            disabled={savingView || deletingView}
+            disabled={savingView || updatingView || deletingView}
             className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-500"
             placeholder="High opportunity watchlist"
           />
@@ -316,15 +361,23 @@ export default function IntelFilesPage() {
         <button
           type="button"
           onClick={() => void saveView()}
-          disabled={savingView || deletingView || savedViewsLoading}
+          disabled={savingView || updatingView || deletingView || savedViewsLoading}
           className="self-end rounded border border-cyan-500 bg-cyan-500 px-3 py-2 text-sm font-medium text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {savingView ? "Saving..." : "Save View"}
         </button>
         <button
           type="button"
+          onClick={() => void updateSelectedView()}
+          disabled={!selectedViewId || savingView || updatingView || deletingView || savedViewsLoading}
+          className="self-end rounded border border-emerald-500 bg-emerald-500 px-3 py-2 text-sm font-medium text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {updatingView ? "Updating..." : "Update Selected"}
+        </button>
+        <button
+          type="button"
           onClick={() => void deleteSavedView()}
-          disabled={!selectedViewId || savingView || deletingView || savedViewsLoading}
+          disabled={!selectedViewId || savingView || updatingView || deletingView || savedViewsLoading}
           className="self-end rounded border border-slate-700 px-3 py-2 text-sm text-slate-200 hover:bg-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {deletingView ? "Deleting..." : "Delete"}
