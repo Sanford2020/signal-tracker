@@ -11,10 +11,17 @@ import {
   fetchIntelFileComments,
   fetchIntelFileDetail,
   fetchMatchSuggestions,
+  fetchTrackingQueries,
+  generateTrackingQueries,
   overrideIntelFileStatus,
   updateIntelFileCollaboration,
 } from "@/lib/api";
-import type { IntelFileComment, IntelFileDetailData, MatchSuggestion } from "@/types/intel-files";
+import type {
+  IntelFileComment,
+  IntelFileDetailData,
+  MatchSuggestion,
+  TrackingQuery,
+} from "@/types/intel-files";
 
 const EVIDENCE_TYPES = [
   "follow_up",
@@ -42,6 +49,10 @@ function formatScore(value: number | null) {
   return value === null ? "—" : value.toFixed(1);
 }
 
+function formatOptionalDate(value: string | null) {
+  return value ? new Date(value).toLocaleString() : "Never";
+}
+
 export default function IntelFileDetailPage() {
   const params = useParams<{ id: string }>();
   const [detail, setDetail] = useState<IntelFileDetailData | null>(null);
@@ -49,6 +60,9 @@ export default function IntelFileDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<MatchSuggestion[]>([]);
   const [comments, setComments] = useState<IntelFileComment[]>([]);
+  const [trackingQueries, setTrackingQueries] = useState<TrackingQuery[]>([]);
+  const [trackingQueryError, setTrackingQueryError] = useState<string | null>(null);
+  const [generatingTrackingQueries, setGeneratingTrackingQueries] = useState(false);
   const [suggestionsError, setSuggestionsError] = useState<string | null>(null);
   const [acceptingSuggestionId, setAcceptingSuggestionId] = useState<string | null>(null);
   const [attachError, setAttachError] = useState<string | null>(null);
@@ -86,7 +100,11 @@ export default function IntelFileDetailPage() {
       setDetail(result.data);
       setOwnerUserId(result.data.intel_file.owner_user_id ?? "");
       setReviewNote(result.data.intel_file.review_note ?? "");
-      const suggestionsResult = await fetchMatchSuggestions(params.id);
+      const [suggestionsResult, commentsResult, trackingQueriesResult] = await Promise.all([
+        fetchMatchSuggestions(params.id),
+        fetchIntelFileComments(params.id),
+        fetchTrackingQueries(params.id),
+      ]);
       if (suggestionsResult.success && suggestionsResult.data) {
         setSuggestions(suggestionsResult.data.items);
         setSuggestionsError(null);
@@ -94,13 +112,22 @@ export default function IntelFileDetailPage() {
         setSuggestions([]);
         setSuggestionsError(suggestionsResult.error?.message ?? "Failed to load suggestions.");
       }
-      const commentsResult = await fetchIntelFileComments(params.id);
       setComments(commentsResult.success && commentsResult.data ? commentsResult.data.items : []);
+      if (trackingQueriesResult.success && trackingQueriesResult.data) {
+        setTrackingQueries(trackingQueriesResult.data.items);
+        setTrackingQueryError(null);
+      } else {
+        setTrackingQueries([]);
+        setTrackingQueryError(
+          trackingQueriesResult.error?.message ?? "Failed to load tracking queries.",
+        );
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load intel file.");
       setDetail(null);
       setSuggestions([]);
       setComments([]);
+      setTrackingQueries([]);
     } finally {
       setLoading(false);
     }
@@ -231,6 +258,28 @@ export default function IntelFileDetailPage() {
       setCommentError(err instanceof Error ? err.message : "Failed to add comment.");
     } finally {
       setSavingComment(false);
+    }
+  }
+
+  async function handleGenerateTrackingQueries(regenerate = false) {
+    if (!params.id) {
+      return;
+    }
+    setGeneratingTrackingQueries(true);
+    setTrackingQueryError(null);
+    try {
+      const result = await generateTrackingQueries(params.id, 12, regenerate);
+      if (!result.success || !result.data) {
+        setTrackingQueryError(result.error?.message ?? "Failed to generate tracking queries.");
+        return;
+      }
+      setTrackingQueries(result.data.items);
+    } catch (err) {
+      setTrackingQueryError(
+        err instanceof Error ? err.message : "Failed to generate tracking queries.",
+      );
+    } finally {
+      setGeneratingTrackingQueries(false);
     }
   }
 
@@ -397,6 +446,84 @@ export default function IntelFileDetailPage() {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="rounded-lg border border-slate-800 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-medium">Tracking queries</h2>
+            <p className="mt-1 text-sm text-slate-400">
+              {trackingQueries.length} active {trackingQueries.length === 1 ? "query" : "queries"} ·{" "}
+              {trackingQueries.filter((item) => item.last_checked_at === null).length} never checked
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={generatingTrackingQueries}
+              onClick={() => void handleGenerateTrackingQueries(false)}
+              className="rounded border border-slate-700 px-3 py-2 text-sm text-sky-300 hover:bg-slate-800 disabled:opacity-50"
+            >
+              {generatingTrackingQueries ? "Generating..." : "Generate"}
+            </button>
+            {trackingQueries.length > 0 ? (
+              <button
+                type="button"
+                disabled={generatingTrackingQueries}
+                onClick={() => void handleGenerateTrackingQueries(true)}
+                className="rounded border border-slate-700 px-3 py-2 text-sm text-amber-300 hover:bg-slate-800 disabled:opacity-50"
+              >
+                Regenerate
+              </button>
+            ) : null}
+          </div>
+        </div>
+        {trackingQueryError ? <p className="mt-3 text-sm text-red-400">{trackingQueryError}</p> : null}
+        {trackingQueries.length === 0 ? (
+          <p className="mt-4 text-sm text-slate-400">No tracking queries generated.</p>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-3 py-2">Query</th>
+                  <th className="px-3 py-2">Source</th>
+                  <th className="px-3 py-2">Last checked</th>
+                  <th className="px-3 py-2">State</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {trackingQueries.map((item) => (
+                  <tr key={item.id}>
+                    <td className="max-w-xl px-3 py-3 align-top">
+                      <p className="font-medium text-slate-200">{item.query}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {item.rationale ?? "No rationale recorded."}
+                      </p>
+                    </td>
+                    <td className="px-3 py-3 align-top text-slate-300">
+                      {item.source_hint ?? "search"}
+                    </td>
+                    <td className="px-3 py-3 align-top text-slate-300">
+                      {formatOptionalDate(item.last_checked_at)}
+                    </td>
+                    <td className="px-3 py-3 align-top">
+                      <span
+                        className={`rounded px-2 py-1 text-xs ${
+                          item.enabled
+                            ? "bg-emerald-950 text-emerald-300"
+                            : "bg-slate-800 text-slate-400"
+                        }`}
+                      >
+                        {item.enabled ? "Enabled" : "Disabled"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="rounded-lg border border-slate-800 p-4">

@@ -2656,3 +2656,35 @@ powershell -ExecutionPolicy Bypass -File scripts\predeploy-check.ps1 -EnvFile tm
 ### Current Next Step
 
 Owner action: deploy Render Blueprint and run hosted smoke test.
+
+---
+
+## TASK-H29 Review — 2026-05-27
+
+### Verdict
+
+`APPROVE`
+
+Intel File tracking-query visibility is implemented. The backend now exposes a workspace-scoped tracking-query list endpoint, and the Intel File detail page shows each query's source hint, enabled state, rationale, and last checked time with generate/regenerate actions.
+
+### Validation
+
+Passed:
+
+```powershell
+pytest backend/tests/test_tracking_queries.py -q
+# 12 passed
+
+npm run type-check
+# passed
+
+pytest backend/tests -q
+# 174 passed
+
+npm run build
+# passed
+```
+
+### Current Next Step
+
+Owner action remains: deploy Render Blueprint and run hosted smoke test. Code-side staging readiness remains green.

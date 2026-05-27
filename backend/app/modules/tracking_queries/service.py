@@ -7,7 +7,12 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.models import Evidence, IntelFile, SignalAnalysis, TrackingQuery
 from app.models.enums import EvidenceType, SignalType
-from app.schemas.tracking_queries import TrackingQueryGenerateData, TrackingQueryGenerateRequest, TrackingQueryRead
+from app.schemas.tracking_queries import (
+    TrackingQueryGenerateData,
+    TrackingQueryGenerateRequest,
+    TrackingQueryListData,
+    TrackingQueryRead,
+)
 
 MAX_QUERY_LENGTH = 160
 PACKAGE_SIGNAL_TERMS = {
@@ -225,4 +230,25 @@ def generate_tracking_queries(
     return TrackingQueryGenerateData(
         items=[TrackingQueryRead.model_validate(item) for item in rows],
         created_count=created_count,
+    )
+
+
+def list_tracking_queries(
+    db: Session,
+    intel_file_id: UUID,
+    *,
+    workspace_id: UUID | None = None,
+) -> TrackingQueryListData:
+    intel_file = db.get(IntelFile, intel_file_id)
+    if intel_file is None or (workspace_id is not None and intel_file.workspace_id != workspace_id):
+        raise ValueError("Intel file not found.")
+
+    rows = db.scalars(
+        select(TrackingQuery)
+        .where(TrackingQuery.intel_file_id == intel_file.id)
+        .order_by(TrackingQuery.created_at.asc(), TrackingQuery.id.asc())
+    ).all()
+    return TrackingQueryListData(
+        items=[TrackingQueryRead.model_validate(item) for item in rows],
+        total=len(rows),
     )

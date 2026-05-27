@@ -110,6 +110,10 @@ Owner action: deploy Render Blueprint and run hosted smoke test.
 - H28 provider health check-rotation visibility is implemented and validated:
   - Provider health now exposes `never_checked_count` and `last_checked_at` by source hint.
   - Sources page shows never-checked backlog and last checked time for each provider hint.
+- H29 Intel File tracking-query visibility is implemented and validated:
+  - Intel File detail now lists generated tracking queries with source hint, enabled state, rationale, and last checked time.
+  - A read-only tracking-query list API is available at `GET /api/v1/intel-files/{intel_file_id}/tracking-queries`.
+  - Analysts can generate or regenerate tracking queries from the Intel File detail page.
 
 ## Goal
 

@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from uuid import UUID
 
 import pytest
@@ -70,6 +71,31 @@ def test_generate_tracking_queries_is_idempotent(client: TestClient) -> None:
     first_queries = {item["normalized_query"] for item in first.json()["data"]["items"]}
     second_queries = {item["normalized_query"] for item in second.json()["data"]["items"]}
     assert first_queries == second_queries
+
+
+def test_list_tracking_queries_returns_existing_check_status(
+    client: TestClient,
+    db_session: Session,
+) -> None:
+    intel_file_id = _create_analyzed_file(client)
+    generate = client.post(f"/api/v1/intel-files/{intel_file_id}/tracking-queries", json={})
+    assert generate.status_code == 200
+
+    tracking_query = db_session.scalar(
+        select(TrackingQuery).where(TrackingQuery.intel_file_id == UUID(intel_file_id))
+    )
+    assert tracking_query is not None
+    tracking_query.last_checked_at = datetime(2026, 5, 27, 12, 0, tzinfo=UTC)
+    db_session.commit()
+
+    response = client.get(f"/api/v1/intel-files/{intel_file_id}/tracking-queries")
+
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["total"] == len(generate.json()["data"]["items"])
+    checked_items = [item for item in data["items"] if item["id"] == str(tracking_query.id)]
+    assert checked_items
+    assert checked_items[0]["last_checked_at"] == "2026-05-27T12:00:00"
 
 
 def test_regenerate_replaces_queries_without_duplicates(client: TestClient, db_session: Session) -> None:
@@ -174,5 +200,12 @@ def test_generate_tracking_queries_missing_file_returns_404(client: TestClient) 
     response = client.post(
         "/api/v1/intel-files/00000000-0000-0000-0000-000000000001/tracking-queries",
         json={},
+    )
+    assert response.status_code == 404
+
+
+def test_list_tracking_queries_missing_file_returns_404(client: TestClient) -> None:
+    response = client.get(
+        "/api/v1/intel-files/00000000-0000-0000-0000-000000000001/tracking-queries",
     )
     assert response.status_code == 404

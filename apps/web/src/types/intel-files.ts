@@ -151,6 +151,29 @@ export type MatchSuggestionGenerateData = {
   created_count: number;
 };
 
+export type TrackingQuery = {
+  id: string;
+  intel_file_id: string;
+  query: string;
+  normalized_query: string;
+  source_hint: string | null;
+  rationale: string | null;
+  enabled: boolean;
+  meta: Record<string, unknown> | null;
+  created_at: string;
+  last_checked_at: string | null;
+};
+
+export type TrackingQueryListData = {
+  items: TrackingQuery[];
+  total: number;
+};
+
+export type TrackingQueryGenerateData = {
+  items: TrackingQuery[];
+  created_count: number;
+};
+
 export type MatchSuggestionAcceptData = {
   item: MatchSuggestion;
   raw_item_id: string;

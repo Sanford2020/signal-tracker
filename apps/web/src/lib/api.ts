@@ -38,6 +38,8 @@ import type {
   MatchSuggestionStatusUpdateData,
   StatusOverrideData,
   StatusOverrideRequest,
+  TrackingQueryGenerateData,
+  TrackingQueryListData,
 } from "@/types/intel-files";
 import type { SourceCheckRunData, SourceCheckRunListData, SourceProviderHealthData } from "@/types/source-checks";
 
@@ -227,6 +229,17 @@ export async function fetchMatchSuggestions(intelFileId: string, status = "open"
   return request<MatchSuggestionListData>(
     `/api/v1/intel-files/${intelFileId}/match-suggestions?${params.toString()}`,
   );
+}
+
+export async function fetchTrackingQueries(intelFileId: string) {
+  return request<TrackingQueryListData>(`/api/v1/intel-files/${intelFileId}/tracking-queries`);
+}
+
+export async function generateTrackingQueries(intelFileId: string, limit = 12, regenerate = false) {
+  return request<TrackingQueryGenerateData>(`/api/v1/intel-files/${intelFileId}/tracking-queries`, {
+    method: "POST",
+    body: JSON.stringify({ limit, regenerate }),
+  });
 }
 
 export async function acceptMatchSuggestion(suggestionId: string, rationale?: string) {

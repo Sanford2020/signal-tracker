@@ -28,3 +28,8 @@ class TrackingQueryGenerateRequest(BaseModel):
 class TrackingQueryGenerateData(BaseModel):
     items: list[TrackingQueryRead]
     created_count: int
+
+
+class TrackingQueryListData(BaseModel):
+    items: list[TrackingQueryRead]
+    total: int

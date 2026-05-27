@@ -26,7 +26,7 @@ from app.modules.collaboration.service import (
 from app.modules.lifecycle.service import evaluate_intel_file, override_intel_file_status
 from app.modules.match_suggestions.service import list_match_suggestions
 from app.modules.scoring.service import score_intel_file
-from app.modules.tracking_queries.service import generate_tracking_queries
+from app.modules.tracking_queries.service import generate_tracking_queries, list_tracking_queries
 from app.schemas.api import ApiError, ApiResponse
 from app.schemas.archives import TrendArchiveListData
 from app.schemas.collaboration import (
@@ -53,7 +53,11 @@ from app.schemas.lifecycle import (
 )
 from app.schemas.match_suggestions import MatchSuggestionListData
 from app.schemas.scoring import ScoreUpdateData, ScoreUpdateRequest
-from app.schemas.tracking_queries import TrackingQueryGenerateData, TrackingQueryGenerateRequest
+from app.schemas.tracking_queries import (
+    TrackingQueryGenerateData,
+    TrackingQueryGenerateRequest,
+    TrackingQueryListData,
+)
 
 router = APIRouter(prefix="/intel-files", tags=["intel-files"])
 
@@ -228,6 +232,22 @@ def generate_tracking_queries_route(
     try:
         require_workspace_access(db, x_workspace_id, x_user_email, x_user_token)
         data = generate_tracking_queries(db, intel_file_id, payload, workspace_id=x_workspace_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return ApiResponse(success=True, data=data, error=None)
+
+
+@router.get("/{intel_file_id}/tracking-queries", response_model=ApiResponse[TrackingQueryListData])
+def list_tracking_queries_route(
+    intel_file_id: UUID,
+    x_workspace_id: UUID | None = Header(None, alias="X-Workspace-Id"),
+    x_user_email: str | None = Header(None, alias="X-User-Email"),
+    x_user_token: str | None = Header(None, alias="X-User-Token"),
+    db: Session = Depends(get_db),
+) -> ApiResponse[TrackingQueryListData]:
+    try:
+        require_workspace_access(db, x_workspace_id, x_user_email, x_user_token)
+        data = list_tracking_queries(db, intel_file_id, workspace_id=x_workspace_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     return ApiResponse(success=True, data=data, error=None)
