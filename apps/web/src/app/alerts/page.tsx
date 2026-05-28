@@ -4,19 +4,28 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { fetchAlerts, updateAlertStatus } from "@/lib/api";
-import type { AlertSummary } from "@/types/alerts";
+import type { AlertStatusFilter, AlertSummary } from "@/types/alerts";
+
+const STATUS_FILTERS: { value: AlertStatusFilter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "pending", label: "Pending" },
+  { value: "sent", label: "Sent" },
+  { value: "acknowledged", label: "Acknowledged" },
+  { value: "dismissed", label: "Dismissed" },
+];
 
 export default function AlertsPage() {
   const [items, setItems] = useState<AlertSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<AlertStatusFilter>("all");
 
   const loadAlerts = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await fetchAlerts();
+      const result = await fetchAlerts(statusFilter);
       if (!result.success || !result.data) {
         setError(result.error?.message ?? "Failed to load alerts.");
         setItems([]);
@@ -29,7 +38,7 @@ export default function AlertsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [statusFilter]);
 
   useEffect(() => {
     void loadAlerts();
@@ -40,11 +49,17 @@ export default function AlertsPage() {
     setError(null);
     try {
       const result = await updateAlertStatus(alertId, { status });
-      if (!result.success) {
+      if (!result.success || !result.data) {
         setError(result.error?.message ?? "Failed to update alert.");
         return;
       }
-      await loadAlerts();
+      const updatedAlert = result.data;
+      setItems((current) => {
+        if (statusFilter !== "all" && statusFilter !== updatedAlert.status) {
+          return current.filter((item) => item.id !== alertId);
+        }
+        return current.map((item) => (item.id === alertId ? updatedAlert : item));
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update alert.");
     } finally {
@@ -54,20 +69,36 @@ export default function AlertsPage() {
 
   return (
     <section className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-xl font-semibold">Alerts</h1>
           <p className="mt-2 text-slate-400">
             Lifecycle and score-threshold notifications for tracked intel files.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void loadAlerts()}
-          className="text-sm text-sky-400 hover:text-sky-300"
-        >
-          Refresh
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {STATUS_FILTERS.map((filter) => (
+            <button
+              key={filter.value}
+              type="button"
+              onClick={() => setStatusFilter(filter.value)}
+              className={
+                statusFilter === filter.value
+                  ? "rounded border border-sky-500 bg-sky-500 px-3 py-1.5 text-xs font-medium text-slate-950"
+                  : "rounded border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 hover:border-slate-500"
+              }
+            >
+              {filter.label}
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => void loadAlerts()}
+            className="px-2 py-1.5 text-sm text-sky-400 hover:text-sky-300"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
       {loading ? <p className="text-sm text-slate-400">Loading alerts...</p> : null}
@@ -75,7 +106,7 @@ export default function AlertsPage() {
 
       {!loading && !error && items.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-800 p-6 text-sm text-slate-400">
-          No alerts yet. Evaluate lifecycle or rescore files to generate notifications.
+          No alerts match this status. Evaluate lifecycle or rescore files to generate notifications.
         </div>
       ) : null}
 

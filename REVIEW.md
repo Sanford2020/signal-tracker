@@ -2861,3 +2861,35 @@ pytest backend/tests -q
 ### Current Next Step
 
 Owner action remains: repair GitLab remote access, deploy Render Blueprint, and run hosted smoke test. GitHub remains current while GitLab access is blocked.
+
+---
+
+## TASK-H35 Review — 2026-05-28
+
+### Verdict
+
+`APPROVE`
+
+Alerts workbench filtering is implemented. The Alerts page now supports status filters for all, pending, sent, acknowledged, and dismissed alerts. Acknowledge/dismiss actions update the visible queue locally after API confirmation, reducing unnecessary reloads during triage.
+
+### Validation
+
+Passed:
+
+```powershell
+npm run type-check
+# passed
+
+npm run build
+# passed
+
+pytest backend/tests/test_alerts.py -q
+# 5 passed
+
+pytest backend/tests -q
+# 176 passed
+```
+
+### Current Next Step
+
+Owner action remains: deploy Render Blueprint and run hosted smoke test. Git remotes are currently synchronized again.

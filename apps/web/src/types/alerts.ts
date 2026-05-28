@@ -9,6 +9,8 @@ export type AlertSummary = {
   created_at: string;
 };
 
+export type AlertStatusFilter = "all" | "pending" | "sent" | "acknowledged" | "dismissed";
+
 export type AlertListData = {
   items: AlertSummary[];
   total: number;

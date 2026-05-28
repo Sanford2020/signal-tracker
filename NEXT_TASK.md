@@ -138,6 +138,9 @@ Owner action: refresh GitLab remote credentials, deploy Render Blueprint, and ru
 - H34 source suggestion queue cleanup is implemented and validated:
   - Sources page suggested-evidence cards now show open suggestions only.
   - Accepted or dismissed suggestions are removed from the active queue after the API confirms the action.
+- H35 alerts workbench filtering is implemented and validated:
+  - Alerts page can filter by all, pending, sent, acknowledged, or dismissed status.
+  - Alert acknowledge/dismiss actions update the visible queue locally instead of reloading the whole list.
 
 ## Goal
 

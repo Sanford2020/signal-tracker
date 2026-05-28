@@ -5,7 +5,7 @@ import type {
   InboxSubmitData,
   InboxSubmitRequest,
 } from "@/types/inbox";
-import type { AlertListData, AlertSummary, AlertUpdateRequest } from "@/types/alerts";
+import type { AlertListData, AlertStatusFilter, AlertSummary, AlertUpdateRequest } from "@/types/alerts";
 import type { DailyBriefingData, WeeklyRetrospectiveData } from "@/types/briefings";
 import type {
   BootstrapData,
@@ -278,9 +278,9 @@ export async function generateSourceCheckMatchSuggestions(runId: string, minConf
   });
 }
 
-export async function fetchAlerts(status?: string) {
+export async function fetchAlerts(status?: AlertStatusFilter) {
   const params = new URLSearchParams();
-  if (status) {
+  if (status && status !== "all") {
     params.set("status", status);
   }
   const query = params.toString();
