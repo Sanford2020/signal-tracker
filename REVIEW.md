@@ -2893,3 +2893,35 @@ pytest backend/tests -q
 ### Current Next Step
 
 Owner action remains: deploy Render Blueprint and run hosted smoke test. Git remotes are currently synchronized again.
+
+---
+
+## TASK-H36 Review — 2026-05-29
+
+### Verdict
+
+`APPROVE`
+
+Alert severity triage is implemented. The Alerts page now combines status filtering with severity filters for all, info, watch, important, and urgent alerts. Acknowledge/dismiss actions keep the current filter context and remove rows locally when an update no longer matches the visible queue.
+
+### Validation
+
+Passed:
+
+```powershell
+npm run type-check
+# passed from apps/web
+
+npm run build
+# passed from apps/web
+
+pytest backend/tests/test_alerts.py -q
+# 6 passed
+
+pytest backend/tests -q
+# 177 passed
+```
+
+### Current Next Step
+
+Owner action remains: deploy Render Blueprint and run hosted smoke test. GitHub and GitLab remotes are expected to stay synchronized after this task push.

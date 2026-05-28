@@ -5,7 +5,13 @@ import type {
   InboxSubmitData,
   InboxSubmitRequest,
 } from "@/types/inbox";
-import type { AlertListData, AlertStatusFilter, AlertSummary, AlertUpdateRequest } from "@/types/alerts";
+import type {
+  AlertListData,
+  AlertSeverityFilter,
+  AlertStatusFilter,
+  AlertSummary,
+  AlertUpdateRequest,
+} from "@/types/alerts";
 import type { DailyBriefingData, WeeklyRetrospectiveData } from "@/types/briefings";
 import type {
   BootstrapData,
@@ -278,10 +284,13 @@ export async function generateSourceCheckMatchSuggestions(runId: string, minConf
   });
 }
 
-export async function fetchAlerts(status?: AlertStatusFilter) {
+export async function fetchAlerts(status?: AlertStatusFilter, severity?: AlertSeverityFilter) {
   const params = new URLSearchParams();
   if (status && status !== "all") {
     params.set("status", status);
+  }
+  if (severity && severity !== "all") {
+    params.set("severity", severity);
   }
   const query = params.toString();
   return request<AlertListData>(`/api/v1/alerts${query ? `?${query}` : ""}`);

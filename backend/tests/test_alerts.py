@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.main import app
 from app.models import AlertEvent, IntelFile, RawItem, Source, SourceType
-from app.models.enums import AlertStatus, AlertType, LifecycleStatus
+from app.models.enums import AlertSeverity, AlertStatus, AlertType, LifecycleStatus
 
 
 @pytest.fixture
@@ -215,6 +215,37 @@ def test_list_alerts_returns_created_alert(client: TestClient, db_session: Sessi
     assert data["items"][0]["intel_file_title"]
     assert data["items"][0]["severity"]
     assert data["items"][0]["message"]
+
+
+def test_list_alerts_filters_by_severity(client: TestClient, db_session: Session) -> None:
+    raw_item = _create_raw_item(db_session, title="Severity filter candidate", content="Rumor")
+    _analyze(client, raw_item.id)
+    intel_file_id = _create_intel_file(client, raw_item.id)
+
+    db_session.add_all(
+        [
+            AlertEvent(
+                intel_file_id=UUID(intel_file_id),
+                alert_type=AlertType.HEAT_SPIKE,
+                severity=AlertSeverity.WATCH,
+                message="Watch-level alert",
+            ),
+            AlertEvent(
+                intel_file_id=UUID(intel_file_id),
+                alert_type=AlertType.OPPORTUNITY_UP,
+                severity=AlertSeverity.URGENT,
+                message="Urgent alert",
+            ),
+        ]
+    )
+    db_session.commit()
+
+    response = client.get("/api/v1/alerts?severity=urgent")
+    assert response.status_code == 200
+    data = response.json()["data"]
+    assert data["total"] == 1
+    assert data["items"][0]["severity"] == "urgent"
+    assert data["items"][0]["message"] == "Urgent alert"
 
 
 def test_acknowledge_and_dismiss_alert(client: TestClient, db_session: Session) -> None:

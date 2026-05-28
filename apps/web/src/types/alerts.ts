@@ -11,6 +11,8 @@ export type AlertSummary = {
 
 export type AlertStatusFilter = "all" | "pending" | "sent" | "acknowledged" | "dismissed";
 
+export type AlertSeverityFilter = "all" | "info" | "watch" | "important" | "urgent";
+
 export type AlertListData = {
   items: AlertSummary[];
   total: number;

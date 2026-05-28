@@ -2,14 +2,10 @@
 
 ## Assignment
 
-Owner action: refresh GitLab remote credentials, deploy Render Blueprint, and run hosted smoke test.
+Owner action: deploy Render Blueprint and run hosted smoke test.
 
 ## Current Blockers
 
-- GitLab remote push is blocked by remote access failure for `https://gitlab.com/wangsongfeng1989-group/signal-tracker.git/`.
-  - Local `main` is ahead of `gitlab/main`; inspect pending commits with `git log gitlab/main..main --oneline`.
-  - Latest observed failures: `HTTP Basic: Access denied` followed by GitLab push/ls-remote timeouts.
-  - Owner action: update the local GitLab credential/token for the `gitlab` remote, confirm remote access, then rerun `git push gitlab main`.
 - Render Blueprint deployment and hosted smoke test still require owner-only account actions and secrets.
 
 ## Current Status
@@ -141,6 +137,10 @@ Owner action: refresh GitLab remote credentials, deploy Render Blueprint, and ru
 - H35 alerts workbench filtering is implemented and validated:
   - Alerts page can filter by all, pending, sent, acknowledged, or dismissed status.
   - Alert acknowledge/dismiss actions update the visible queue locally instead of reloading the whole list.
+- H36 alert severity triage is implemented and validated:
+  - Alerts page can combine status filters with all, info, watch, important, or urgent severity filters.
+  - Alert acknowledge/dismiss actions preserve the active status and severity filter without a full reload.
+  - Alert severity filtering has backend route coverage.
 
 ## Goal
 

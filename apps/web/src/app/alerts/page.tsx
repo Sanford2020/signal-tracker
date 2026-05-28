@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { fetchAlerts, updateAlertStatus } from "@/lib/api";
-import type { AlertStatusFilter, AlertSummary } from "@/types/alerts";
+import type { AlertSeverityFilter, AlertStatusFilter, AlertSummary } from "@/types/alerts";
 
 const STATUS_FILTERS: { value: AlertStatusFilter; label: string }[] = [
   { value: "all", label: "All" },
@@ -14,18 +14,27 @@ const STATUS_FILTERS: { value: AlertStatusFilter; label: string }[] = [
   { value: "dismissed", label: "Dismissed" },
 ];
 
+const SEVERITY_FILTERS: { value: AlertSeverityFilter; label: string }[] = [
+  { value: "all", label: "All severity" },
+  { value: "info", label: "Info" },
+  { value: "watch", label: "Watch" },
+  { value: "important", label: "Important" },
+  { value: "urgent", label: "Urgent" },
+];
+
 export default function AlertsPage() {
   const [items, setItems] = useState<AlertSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<AlertStatusFilter>("all");
+  const [severityFilter, setSeverityFilter] = useState<AlertSeverityFilter>("all");
 
   const loadAlerts = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await fetchAlerts(statusFilter);
+      const result = await fetchAlerts(statusFilter, severityFilter);
       if (!result.success || !result.data) {
         setError(result.error?.message ?? "Failed to load alerts.");
         setItems([]);
@@ -38,7 +47,7 @@ export default function AlertsPage() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter]);
+  }, [severityFilter, statusFilter]);
 
   useEffect(() => {
     void loadAlerts();
@@ -55,7 +64,9 @@ export default function AlertsPage() {
       }
       const updatedAlert = result.data;
       setItems((current) => {
-        if (statusFilter !== "all" && statusFilter !== updatedAlert.status) {
+        const matchesStatus = statusFilter === "all" || statusFilter === updatedAlert.status;
+        const matchesSeverity = severityFilter === "all" || severityFilter === updatedAlert.severity;
+        if (!matchesStatus || !matchesSeverity) {
           return current.filter((item) => item.id !== alertId);
         }
         return current.map((item) => (item.id === alertId ? updatedAlert : item));
@@ -76,28 +87,46 @@ export default function AlertsPage() {
             Lifecycle and score-threshold notifications for tracked intel files.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {STATUS_FILTERS.map((filter) => (
+        <div className="flex flex-col gap-2 md:items-end">
+          <div className="flex flex-wrap items-center gap-2">
+            {STATUS_FILTERS.map((filter) => (
+              <button
+                key={filter.value}
+                type="button"
+                onClick={() => setStatusFilter(filter.value)}
+                className={
+                  statusFilter === filter.value
+                    ? "rounded border border-sky-500 bg-sky-500 px-3 py-1.5 text-xs font-medium text-slate-950"
+                    : "rounded border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 hover:border-slate-500"
+                }
+              >
+                {filter.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {SEVERITY_FILTERS.map((filter) => (
+              <button
+                key={filter.value}
+                type="button"
+                onClick={() => setSeverityFilter(filter.value)}
+                className={
+                  severityFilter === filter.value
+                    ? "rounded border border-emerald-500 bg-emerald-500 px-3 py-1.5 text-xs font-medium text-slate-950"
+                    : "rounded border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 hover:border-slate-500"
+                }
+              >
+                {filter.label}
+              </button>
+            ))}
             <button
-              key={filter.value}
               type="button"
-              onClick={() => setStatusFilter(filter.value)}
-              className={
-                statusFilter === filter.value
-                  ? "rounded border border-sky-500 bg-sky-500 px-3 py-1.5 text-xs font-medium text-slate-950"
-                  : "rounded border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 hover:border-slate-500"
-              }
+              onClick={() => void loadAlerts()}
+              className="px-2 py-1.5 text-sm text-sky-400 hover:text-sky-300"
             >
-              {filter.label}
+              Refresh
             </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => void loadAlerts()}
-            className="px-2 py-1.5 text-sm text-sky-400 hover:text-sky-300"
-          >
-            Refresh
-          </button>
+          </div>
         </div>
       </div>
 
@@ -106,7 +135,7 @@ export default function AlertsPage() {
 
       {!loading && !error && items.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-800 p-6 text-sm text-slate-400">
-          No alerts match this status. Evaluate lifecycle or rescore files to generate notifications.
+          No alerts match these filters. Evaluate lifecycle or rescore files to generate notifications.
         </div>
       ) : null}
 
